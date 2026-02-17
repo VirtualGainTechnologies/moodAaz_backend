@@ -7,9 +7,9 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
-const AppError = require("./src/utils/AppError");
-const { logger } = require("./src/utils/winstonLogger");
-const globalErrorHandler = require("./src/middlewares/shared/globalErrorHandler");
+const AppError = require("./utils/AppError");
+const { logger } = require("./utils/winstonLogger");
+const globalErrorHandler = require("./middlewares/shared/globalErrorHandler");
 
 // start express app
 const app = express();
@@ -65,12 +65,12 @@ app.use(useragent.express());
 
 //---------router imports---------//
 // admin
-const adminAuthRouter = require("./src/routers/admin/authRouter");
+const adminAuthRouter = require("./routers/admin/authRouter");
 
 // user
 
 // shared
-const resendOtpRouter = require("./src/routers/shared/resendOtpRouter");
+const resendOtpRouter = require("./routers/shared/resendOtpRouter");
 
 //---------routers declartions-----------//
 // admin

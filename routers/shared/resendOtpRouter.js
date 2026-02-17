@@ -12,9 +12,7 @@ const resendOtpValidator = [
     .isEmail()
     .withMessage("Invalid email id")
     .toLowerCase(),
-  body("type")
-    .notEmpty()
-    .withMessage("The field type is missing")
+  body("type").notEmpty().withMessage("The field type is missing"),
 ];
 
 router.post("/", resendOtpValidator, catchAsync("resendOtp api", resendOtp));

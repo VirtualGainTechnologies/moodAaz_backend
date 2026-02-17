@@ -21,7 +21,7 @@ exports.verifyAdminToken = async (req, res, next) => {
     "_id email role status",
     {
       lean: true,
-    }
+    },
   );
 
   if (!adminResult) {

@@ -9,7 +9,7 @@ exports.checkAdminLoginAttempts = async (req, res, next) => {
   const admin = await getAdminByFilter(
     { email: req.body?.email },
     "_id email phone phone_code is_login_attempt_exceeded login_count password status",
-    {}
+    {},
   );
   if (!admin) {
     throw new AppError(400, "Email is not registered");
@@ -48,7 +48,7 @@ exports.checkAdminLoginAttempts = async (req, res, next) => {
       const updatedAdmin = await updateAdminById(
         admin._id,
         { is_login_attempt_exceeded: true },
-        { new: true }
+        { new: true },
       );
 
       if (!updatedAdmin) {
@@ -67,7 +67,7 @@ exports.checkAdminLoginAttempts = async (req, res, next) => {
       last_login_location: req.locationDetails,
       last_login_date: new Date().getTime(),
     },
-    { new: true }
+    { new: true },
   );
 
   if (!updatedUser) {
