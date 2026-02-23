@@ -121,7 +121,11 @@ exports.verifyOtp = async (id, otp) => {
     }
 
     if (otpRecord.otp !== otpHash(otp)) {
-      await repo.incrementAttempts(otpRecord._id);
+      await repo.updateById(
+        otpRecord._id,
+        { $inc: { attempts: 1 } },
+        { new: true },
+      );
       throw new AppError(400, "Invalid OTP");
     }
 
