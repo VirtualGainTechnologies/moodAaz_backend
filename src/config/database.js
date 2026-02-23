@@ -1,14 +1,15 @@
 const mongoose = require("mongoose");
 const { MONGO_URI, NODE_ENV } = require("./env");
+const { logger } = require("../utils/winstonLogger");
 
 module.exports = async () => {
   try {
     await mongoose.connect(MONGO_URI, {
       autoIndex: NODE_ENV !== "production",
     });
-    console.log("MongoDB connected");
+    logger.info("MongoDB connected...");
   } catch (error) {
-    console.error("MongoDB connection failed:", error.message);
+    logger.error("MongoDB connection failed:", error.message);
     process.exit(1);
   }
 };

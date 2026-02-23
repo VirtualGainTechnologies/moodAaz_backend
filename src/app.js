@@ -21,7 +21,7 @@ const { errorHandler } = require("./middlewares");
 const app = express();
 app.set("trust proxy", true);
 app.disable("etag");
-logger.info("Running environment:", NODE_ENV);
+logger.info(`Running environment: ${NODE_ENV}`);
 
 // global middlewares
 app.use(helmet());

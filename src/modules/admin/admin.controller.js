@@ -1,10 +1,10 @@
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 const AppError = require("../../utils/AppError");
-const service = require("./admin.auth.service");
+const authService = require("./admin.auth.service");
 
 // AUTH
 exports.registerSuperAdmin = async (req, res) => {
-  const result = await service.registerSuperAdmin(req.body, {
+  const result = await authService.registerSuperAdmin(req.body, {
     ip: req.ipAddress,
     location: req.locationDetails,
   });
@@ -30,7 +30,7 @@ exports.registerSuperAdmin = async (req, res) => {
 
 exports.upsertSubAdmin = async (req, res) => {
   const { userId } = req.body;
-  const result = await service.upsertSubAdmin(req.body, {
+  const result = await authService.upsertSubAdmin(req.body, {
     ip: req.ipAddress,
     location: req.locationDetails,
   });
@@ -58,7 +58,7 @@ exports.upsertSubAdmin = async (req, res) => {
 };
 
 exports.sendLoginOtp = async (req, res) => {
-  const result = await service.sendLoginOtp(req.body);
+  const result = await authService.sendLoginOtp(req.body);
   if (!result) {
     throw new AppError(400, "Failed to send otp");
   }
@@ -71,7 +71,7 @@ exports.sendLoginOtp = async (req, res) => {
 };
 
 exports.verifyLoginOtp = async (req, res) => {
-  const result = await service.verifyLoginOtp(req.body);
+  const result = await authService.verifyLoginOtp(req.body);
   if (!result) {
     throw new AppError(400, "Failed to verify otp");
   }
@@ -95,7 +95,7 @@ exports.verifyLoginOtp = async (req, res) => {
 
 exports.getAdminProfile = async (req, res) => {
   const adminId = req?.user?._id;
-  const result = await service.getAdminProfile(adminId);
+  const result = await authService.getAdminProfile(adminId);
   if (!result) {
     throw new AppError(400, "Failed to fetch admin profile");
   }
@@ -108,7 +108,7 @@ exports.getAdminProfile = async (req, res) => {
 
 exports.logout = async (req, res) => {
   const adminId = req?.user?._id;
-  const result = await service.logout(adminId);
+  const result = await authService.logout(adminId);
   if (!result) {
     throw new AppError(400, "Logout failed");
   }

@@ -12,7 +12,7 @@ const { PORT } = require("./config/env");
 
     // start server
     const server = app.listen(PORT, () => {
-      console.log(`App is running on port ${PORT}...`);
+      logger.info(`App is running on port ${PORT}...`);
     });
 
     // process handlers
