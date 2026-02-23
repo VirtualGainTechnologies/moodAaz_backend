@@ -23,7 +23,7 @@ router.post(
 );
 
 router.get(
-  "/tree",
+  "/",
   authenticate,
   authorize("SUPER-ADMIN"),
   catchAsync("getCategoriesTree api", getCategoryTree),

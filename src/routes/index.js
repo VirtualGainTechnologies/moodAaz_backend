@@ -15,7 +15,7 @@ router.get("/health", (req, res) => {
 });
 
 router.use("/admin", adminRoutes);
-router.use("/category", categoryRoutes);
+router.use("/categories", categoryRoutes);
 router.use("/otp", otpRouter);
 
 module.exports = router;
