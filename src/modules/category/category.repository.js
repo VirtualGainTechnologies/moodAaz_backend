@@ -15,5 +15,3 @@ exports.updateById = (id, data, options = {}) =>
   Category.findByIdAndUpdate(id, data, options);
 
 exports.deleteById = (id) => Category.findByIdAndDelete(id);
-
-exports.findChildren = (parentId) => Category.find({ parent: parentId });

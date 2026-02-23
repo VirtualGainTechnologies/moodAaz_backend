@@ -4,12 +4,12 @@ const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Category name is a required field"],
       trim: true,
     },
     slug: {
       type: String,
-      required: true,
+      required: [true, "Category slug is a required field"],
       unique: true,
       lowercase: true,
     },

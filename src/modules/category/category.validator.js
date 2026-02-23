@@ -9,8 +9,18 @@ exports.createCategoryValidator = [
 ];
 
 exports.updateCategoryValidator = [
-  param("id").isMongoId(),
-  body("name").optional().notEmpty(),
+  param("id")
+    .notEmpty()
+    .withMessage("Category id is required")
+    .isMongoId()
+    .withMessage("Invalid category id"),
+  body("name").notEmpty().withMessage("Category name is required"),
 ];
 
-exports.deleteCategoryValidator = [param("id").isMongoId()];
+exports.deleteCategoryValidator = [
+  param("id")
+    .notEmpty()
+    .withMessage("Category id is required")
+    .isMongoId()
+    .withMessage("Invalid category id"),
+];

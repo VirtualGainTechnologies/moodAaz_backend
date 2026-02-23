@@ -6,7 +6,8 @@ const buildTree = (categories, parentId = null) => {
   return categories
     .filter((c) => String(c.parent) === String(parentId))
     .map((c) => ({
-      ...c.toObject(),
+      _id: c._id,
+      name: c.name,
       children: buildTree(categories, c._id),
     }));
 };
@@ -44,18 +45,22 @@ exports.getCategoryTree = async () => {
   if (!categories) {
     throw new AppError(400, "Failed to get categories");
   }
-  return categories;
   return buildTree(categories);
 };
 
-exports.updateCategory = async (id, payload) => {
-  return repo.updateById(id, payload);
+exports.updateCategory = async (id, name) => {
+  const slug = slugify(name, { lower: true });
+  return repo.updateById(id, { name, slug }, { new: true });
 };
 
 exports.deleteCategory = async (id) => {
-  const children = await repo.findChildren(id);
+  const category = await repo.findById(id, "_id", { lean: true });
+  if (!category) {
+    throw new AppError(400, "Category not found");
+  }
+  const children = await repo.findAll({ parent: id }, "_id", { lean: true });
   if (children.length) {
-    throw new Error("Delete child categories first");
+    throw new AppError(400, "Delete child categories first");
   }
   return repo.deleteById(id);
 };

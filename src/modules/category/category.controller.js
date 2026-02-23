@@ -26,20 +26,27 @@ exports.getCategoryTree = async (req, res) => {
   });
 };
 
-exports.updateCategory = async (req, res, next) => {
-  try {
-    const category = await service.updateCategory(req.params.id, req.body);
-    res.json({ success: true, data: category });
-  } catch (err) {
-    next(err);
+exports.updateCategory = async (req, res) => {
+  const { name } = req.body;
+  const category = await service.updateCategory(req.params.id, name);
+  if (!category) {
+    throw new AppError(400, "Failed to update category");
   }
+  res.status(200).json({
+    message: "Category updated successfully",
+    error: false,
+    data: category,
+  });
 };
 
-exports.deleteCategory = async (req, res, next) => {
-  try {
-    await service.deleteCategory(req.params.id);
-    res.json({ success: true, message: "Category deleted" });
-  } catch (err) {
-    next(err);
+exports.deleteCategory = async (req, res) => {
+  const isDeleted = await service.deleteCategory(req.params.id);
+  if (!isDeleted) {
+    throw new AppError(400, "Failed to delete category");
   }
+  res.status(200).json({
+    message: "Category deleted successfully",
+    error: false,
+    data: null,
+  });
 };
