@@ -112,5 +112,4 @@ adminSchema.methods.generateAuthToken = function () {
   return token;
 };
 
-const AdminModel = mongoose.model("admin", adminSchema);
-module.exports = { AdminModel };
+module.exports = mongoose.model("admin", adminSchema);

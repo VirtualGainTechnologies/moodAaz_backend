@@ -14,7 +14,7 @@ router.get("/health", (req, res) => {
   });
 });
 
-router.use("/admin/auth", adminRoutes);
+router.use("/admin", adminRoutes);
 router.use("/category", categoryRoutes);
 router.use("/otp", otpRouter);
 

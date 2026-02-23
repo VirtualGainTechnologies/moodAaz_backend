@@ -1,7 +1,8 @@
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 const AppError = require("../../utils/AppError");
-const service = require("./admin.service");
+const service = require("./admin.auth.service");
 
+// AUTH
 exports.registerSuperAdmin = async (req, res) => {
   const result = await service.registerSuperAdmin(req.body, {
     ip: req.ipAddress,
@@ -92,13 +93,26 @@ exports.verifyLoginOtp = async (req, res) => {
   });
 };
 
+exports.getAdminProfile = async (req, res) => {
+  const adminId = req?.user?._id;
+  const result = await service.getAdminProfile(adminId);
+  if (!result) {
+    throw new AppError(400, "Failed to fetch admin profile");
+  }
+  res.status(200).json({
+    message: "Admin profile retrieved successfully",
+    error: false,
+    data: result,
+  });
+};
+
 exports.logout = async (req, res) => {
-  const token = req.signedCookies["admin_token"];
-  const result = await service.logout(token);
+  const adminId = req?.user?._id;
+  const result = await service.logout(adminId);
   if (!result) {
     throw new AppError(400, "Logout failed");
   }
-  
+
   res.clearCookie("token");
 
   res.status(200).json({
@@ -107,3 +121,5 @@ exports.logout = async (req, res) => {
     data: null,
   });
 };
+
+// PASSWORD

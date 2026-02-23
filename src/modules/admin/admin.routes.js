@@ -11,6 +11,7 @@ const {
   upsertSubAdmin,
   sendLoginOtp,
   verifyLoginOtp,
+  getAdminProfile,
   logout,
 } = require("./admin.controller");
 const {
@@ -20,17 +21,16 @@ const {
   verifyLoginOtpValidator,
 } = require("./admin.validator");
 
-// REGISTER
+// AUTH
 router.post(
-  "/register-super-admin",
+  "/auth/register-super-admin",
   registerSuperAdminValidator,
   catchAsync("getIpAndLocation middleware", getIpAndLocation),
   catchAsync("registerSuperAdmin api", registerSuperAdmin),
 );
 
-// UPSERT SUB ADMIN
 router.post(
-  "/upsert-sub-admin",
+  "/auth/upsert-sub-admin",
   authenticate,
   authorize("SUPER-ADMIN"),
   upsertSubAdminValidator,
@@ -38,21 +38,30 @@ router.post(
   catchAsync("upsertSubAdmin api", upsertSubAdmin),
 );
 
-// LOGIN
-router
-  .post(
-    "/login/send-otp",
-    sendLoginOtpValidator,
-    catchAsync("sendLoginOtp api", sendLoginOtp),
-  )
-  .post(
-    "/login/verify-otp",
-    verifyLoginOtpValidator,
-    catchAsync("getIpAndLocation middleware", getIpAndLocation),
-    catchAsync("verifyLoginOtp api", verifyLoginOtp),
-  );
+router.post(
+  "/auth/login/send-otp",
+  sendLoginOtpValidator,
+  catchAsync("sendLoginOtp api", sendLoginOtp),
+);
 
-// LOGOUT
-router.post("/logout", authenticate, catchAsync("logout api", logout));
+router.post(
+  "/auth/login/verify-otp",
+  verifyLoginOtpValidator,
+  catchAsync("getIpAndLocation middleware", getIpAndLocation),
+  catchAsync("verifyLoginOtp api", verifyLoginOtp),
+);
+
+router.get(
+  "/auth/profile",
+  authenticate,
+  catchAsync("getAdminProfile api", getAdminProfile),
+);
+
+router.post("/auth/logout", authenticate, catchAsync("logout api", logout));
+
+// PASSWORD
+// router.post("/forgot-password/send-otp");
+// router.post("/forgot-password/verify-otp");
+// router.post("/forgot-password/reset");
 
 module.exports = router;

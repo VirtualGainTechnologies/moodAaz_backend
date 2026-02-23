@@ -1,5 +1,6 @@
 const { body, query } = require("express-validator");
 
+// AUTH
 exports.registerSuperAdminValidator = [
   body("userName")
     .notEmpty()
@@ -91,3 +92,5 @@ exports.getAllSubAdminsValidator = [
     ]),
   query("email").optional().toLowerCase(),
 ];
+
+// PASSWORD

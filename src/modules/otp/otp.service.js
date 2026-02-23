@@ -25,10 +25,10 @@ exports.sendEmailOtp = async (email, type) => {
       throw new AppError(400, `${!email ? "Email" : "Otp type"} is required`);
     }
 
-    await repo.deleteExistingOtp({ email });
+    await repo.deleteMany({ email });
     const otp = generateOtp();
 
-    const otpRecord = await repo.createOtp({
+    const otpRecord = await repo.create({
       email,
       otp: otpHash(otp),
       expires_at: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
@@ -67,10 +67,10 @@ exports.sendMobileOtp = async (phone, phoneCode) => {
     if (!phone || !phoneCode)
       throw new AppError(400, `${!phone ? "Phone" : "Phone code"} is required`);
 
-    await repo.deleteExistingOtp({ phone });
+    await repo.deleteMany({ phone });
     const otp = generateOtp();
 
-    const otpRecord = await repo.createOtp({
+    const otpRecord = await repo.create({
       phone,
       phone_code: phoneCode,
       otp: otpHash(otp),

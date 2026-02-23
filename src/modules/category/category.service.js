@@ -33,7 +33,7 @@ exports.createCategory = async (payload) => {
 };
 
 exports.getCategoryTree = async () => {
-  const categories = await repo.findAll(
+  const categories = await repo.findMany(
     {
       is_active: true,
     },
@@ -58,7 +58,7 @@ exports.deleteCategory = async (id) => {
   if (!category) {
     throw new AppError(400, "Category not found");
   }
-  const children = await repo.findAll({ parent: id }, "_id", { lean: true });
+  const children = await repo.findMany({ parent: id }, "_id", { lean: true });
   if (children.length) {
     throw new AppError(400, "Delete child categories first");
   }

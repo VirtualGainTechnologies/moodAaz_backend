@@ -1,24 +1,32 @@
-const { AdminModel } = require("./admin.model");
+const Admin = require("./admin.model");
 
-exports.findOne = (filter, projection = null, options = {}) => {
-  return AdminModel.findOne(filter, projection, options);
-};
-
+// create
 exports.create = (payload) => {
-  return AdminModel.create(payload);
+  return Admin.create(payload);
 };
 
-exports.updateByFilter = (filter, update, options = {}) => {
-  return AdminModel.findOneAndUpdate(filter, update, options);
+// get
+exports.findOne = (filter = {}, projection = null, options = {}) => {
+  return Admin.findOne(filter, projection, options);
 };
 
-exports.updateById = (id, update, options) => {
-  return AdminModel.findByIdAndUpdate(id, update, options);
+exports.findById = (id, projection = null, options = {}) => {
+  return Admin.findById(id, projection, options);
 };
 
-exports.findById = (id, projection = null, options = null) =>
-  AdminModel.findById(id, projection, options);
+exports.findMany = (filter = {}, projection = null, options = {}) => {
+  return Admin.find(filter, projection, (options = {}));
+};
 
-exports.getAllSubAdmins = (query) => {
-  return AdminModel.aggregate(query);
+// update
+exports.updateOne = (filter = {}, payload = {}, options = {}) => {
+  return Admin.findOneAndUpdate(filter, payload, options);
+};
+exports.updateById = (id, payload = {}, options = {}) => {
+  return Admin.findByIdAndUpdate(id, payload, options);
+};
+
+// delete
+exports.deleteById = (id, options = {}) => {
+  return Admin.findByIdAndDelete(id, options);
 };

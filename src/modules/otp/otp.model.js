@@ -33,5 +33,4 @@ const otpSchema = new mongoose.Schema(
   { versionKey: false },
 );
 
-const OtpModel = mongoose.model("otp", otpSchema);
-module.exports = { OtpModel };
+module.exports = mongoose.model("otp", otpSchema);

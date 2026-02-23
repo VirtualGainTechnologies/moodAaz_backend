@@ -1,17 +1,29 @@
 const Category = require("./category.model");
 
-exports.create = (data) => Category.create(data);
+// create
+exports.create = (payload) => {
+  return Category.create(payload);
+};
 
-exports.findOne = (filter = {}, projection = null, options = {}) =>
-  Category.findOne(filter, projection, options);
+// get
+exports.findOne = (filter = {}, projection = null, options = {}) => {
+  return Category.findOne(filter, projection, options);
+};
 
-exports.findById = (id, projection = null, options = {}) =>
-  Category.findById(id, projection, options);
+exports.findById = (id, projection = null, options = {}) => {
+  return Category.findById(id, projection, options);
+};
 
-exports.findAll = (filter = {}, projection = null, options) =>
-  Category.find(filter, projection, options);
+exports.findMany = (filter = {}, projection = null, options = {}) => {
+  return Category.find(filter, projection, (options = {}));
+};
 
-exports.updateById = (id, data, options = {}) =>
-  Category.findByIdAndUpdate(id, data, options);
+// update
+exports.updateById = (id, payload, options = {}) => {
+  return Category.findByIdAndUpdate(id, payload, options);
+};
 
-exports.deleteById = (id) => Category.findByIdAndDelete(id);
+// delete
+exports.deleteById = (id, options = {}) => {
+  return Category.findByIdAndDelete(id, options);
+};

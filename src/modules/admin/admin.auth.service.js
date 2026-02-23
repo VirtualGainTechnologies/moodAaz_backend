@@ -163,12 +163,13 @@ exports.verifyLoginOtp = async (body) => {
     throw new AppError(400, token.message);
   }
 
-  const updatedToken = await repo.updateByFilter(
+  const updatedToken = await repo.updateOne(
     { email: admin.email },
     {
       token: token.data,
       last_login_date: Date.now(),
     },
+    { new: true },
   );
   if (!updatedToken) {
     throw new AppError(400, "Failed to update token");
@@ -182,9 +183,28 @@ exports.verifyLoginOtp = async (body) => {
   };
 };
 
-exports.logout = async (token) => {
-  if (!token) {
-    throw new AppError(400, "Token is missing");
+exports.getAdminProfile = async (adminId) => {
+  const admin = await repo.findById(
+    adminId,
+    "-_id role user_name phone_code phone email status",
+    { lean: true },
+  );
+  if (!admin) {
+    throw new AppError(400, "Failed to fetch admin data");
   }
-  return await repo.updateByFilter({ token }, { token: "" }, { new: true });
+
+  if (admin.status == "BLOCKED") {
+    throw new AppError(
+      400,
+      "Your account has been temporarily restricted due to security concerns",
+    );
+  }
+  return admin;
+};
+
+exports.logout = async (adminId) => {
+  if (!adminId) {
+    throw new AppError(400, "Admin id is missing");
+  }
+  return await repo.updateById(adminId, { token: "" }, { new: true });
 };
