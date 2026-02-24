@@ -2,11 +2,21 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const Admin = require("./admin.model");
 const AppError = require("../../utils/AppError");
-const {sendEmailOtp, verifyOtp } = require("../../modules/otp/otp.service");
+const {sendEmailOtp, sendMobileOtp, verifyOtp } = require("../../modules/otp/otp.service");
 
 
-exports.forgotPasswordSendOtp = async ({ email }) => {
-  const otpData = await sendEmailOtp(email, "login");
+exports.forgotPasswordSendOtp = async ({ mode, email, phone, phoneCode }) => {
+  let otpData;
+
+  if (mode === "EMAIL") {
+    if (!email) throw new AppError(400, "Email is required for EMAIL mode");
+    otpData = await sendEmailOtp(email, "login");
+  } else if (mode === "PHONE") {
+    if (!phone || !phoneCode) throw new AppError(400, "Phone and phoneCode are required for PHONE mode");
+    otpData = await sendPhoneOtp(phone, phoneCode, "forgot-password");
+  } else {
+    throw new AppError(400, "Invalid mode");
+  }
 
   return {
     otpId: otpData.otpId,
@@ -14,18 +24,12 @@ exports.forgotPasswordSendOtp = async ({ email }) => {
   };
 };
 
-exports.verifyForgotPasswordOtp = async ({ otpId, email, otp }) => {
-  const { verified, otpRecord } = await verifyOtp(otpId, otp);
+exports.verifyForgotPasswordOtp = async ({ otpId, otp }) => {
+  const { verified } = await verifyOtp(otpId, otp);
 
   if (!verified) {
     throw new AppError(400, "Invalid or expired OTP");
   }
-
-  // Ensure OTP belongs to the same email
-  if (!otpRecord || otpRecord.email !== email) {
-    throw new AppError(400, "OTP does not match this email");
-  }
-
   return true;
 };
 

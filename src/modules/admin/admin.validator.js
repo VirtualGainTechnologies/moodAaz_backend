@@ -87,7 +87,7 @@ exports.getAllSubAdminsValidator = [
     .isIn([
       "SUB-ADMIN-LEVEL-1",
       "SUB-ADMIN-LEVEL-2",
-      "SUB-ADMIN-LEVEL-3",
+      "SUB-ADMIN-LEVEL-3", 
       "ALL",
     ]),
   query("email").optional().toLowerCase(),
@@ -96,12 +96,37 @@ exports.getAllSubAdminsValidator = [
 
 // Forgot Password - Send OTP
 exports.forgotPasswordSendOtpValidator = [
-  body("email")
+   body("mode")
     .notEmpty()
-    .withMessage("Email is required")
+    .trim()
+    .withMessage("Please provide password change mode")
+    .isIn(["EMAIL", "PHONE"])
+    .withMessage("Mode must be either EMAIL or PHONE"),
+  body("email")
+    .if(body("mode").isIn(["EMAIL"]))
+    .notEmpty()
+    .withMessage("Please provide email id")
+    .trim()
     .isEmail()
-    .withMessage("Invalid email address")
+    .withMessage("Invalid email id")
     .toLowerCase(),
+  body("phoneCode")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone code"),
+  body("phone")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone number")
+    .custom(async (val) => {
+      if (/^[6-9]{1}[0-9]{9}$/.test(val)) {
+        return true;
+      } else {
+        throw new Error("Invalid phone number");
+      }
+    }),
 ];
 
 // Verify Forgot Password OTP
@@ -111,12 +136,6 @@ exports.verifyForgotPasswordOtpValidator = [
     .withMessage("OTP id is required")
     .isMongoId()
     .withMessage("Invalid OTP id"),
-  body("email")
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Invalid email address")
-    .toLowerCase(),
   body("otp")
     .notEmpty()
     .withMessage("OTP is required")
