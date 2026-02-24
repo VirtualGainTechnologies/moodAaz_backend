@@ -12,6 +12,7 @@ const {
   sendLoginOtp,
   verifyLoginOtp,
   getAdminProfile,
+  getAllSubAdmins,
   logout,
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
@@ -61,6 +62,13 @@ router.get(
   "/auth/profile",
   authenticate,
   catchAsync("getAdminProfile api", getAdminProfile),
+);
+
+router.get(
+  "/auth/sub-admins",
+  authenticate,
+  authorize("SUPER-ADMIN"),
+  catchAsync("getAllSubAdmins api", getAllSubAdmins),
 );
 
 router.post("/auth/logout", authenticate, catchAsync("logout api", logout));

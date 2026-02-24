@@ -18,6 +18,10 @@ exports.findMany = (filter = {}, projection = null, options = {}) => {
   return Admin.find(filter, projection, (options = {}));
 };
 
+exports.aggregate = (pipeline = [], options = {}) => {
+  return Admin.aggregate(pipeline).option(options);
+};
+
 // update
 exports.updateOne = (filter = {}, payload = {}, options = {}) => {
   return Admin.findOneAndUpdate(filter, payload, options);

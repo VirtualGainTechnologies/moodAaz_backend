@@ -1,9 +1,9 @@
 const router = require("express").Router();
 
 // module routes
-const adminRoutes = require("../modules/admin/admin.routes");
-const categoryRoutes = require("../modules/category/category.routes");
-const otpRouter = require("../modules/otp/otp.routes");
+const adminRoutes = require("../modules/admin/admin.router");
+const categoryRoutes = require("../modules/category/category.router");
+const otpRouter = require("../modules/otp/otp.router");
 
 // health check
 router.get("/health", (req, res) => {

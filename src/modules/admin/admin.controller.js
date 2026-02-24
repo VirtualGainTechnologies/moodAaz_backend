@@ -107,6 +107,23 @@ exports.getAdminProfile = async (req, res) => {
   });
 };
 
+exports.getAllSubAdmins = async (req, res) => {
+  const result = await authService.getAllSubAdmins(req.query);
+  if (!result) {
+    throw new AppError(400, "Failed to fetch admins");
+  }
+  const { totalRecords, data } = result[0];
+
+  res.status(200).json({
+    message: "Sub-admins retrieved successfully",
+    error: false,
+    data: {
+      totalRecords,
+      result: data,
+    },
+  });
+};
+
 exports.logout = async (req, res) => {
   const adminId = req?.user?._id;
   const result = await authService.logout(adminId);
@@ -114,7 +131,7 @@ exports.logout = async (req, res) => {
     throw new AppError(400, "Logout failed");
   }
 
-  res.clearCookie("token");
+  res.clearCookie("admin_token");
 
   res.status(200).json({
     message: "Logged out successfully",

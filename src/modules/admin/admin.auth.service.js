@@ -169,7 +169,7 @@ exports.verifyLoginOtp = async (body) => {
       token: token.data,
       last_login_date: Date.now(),
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updatedToken) {
     throw new AppError(400, "Failed to update token");
@@ -200,6 +200,54 @@ exports.getAdminProfile = async (adminId) => {
     );
   }
   return admin;
+};
+
+exports.getAllSubAdmins = async (query) => {
+  const { email, role, page = 0, limit = 10 } = query;
+  const pipeline = [
+    {
+      $match: {
+        ...(role === "ALL" ? { role: { $ne: "SUPER-ADMIN" } } : { role }),
+        ...(email && {
+          email: { $regex: email, $options: "i" },
+        }),
+      },
+    },
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: page * Number(limit) },
+          { $limit: Number(limit) },
+          {
+            $project: {
+              _id: 1,
+              user_name: 1,
+              email: 1,
+              phone_code: 1,
+              phone: 1,
+              role: 1,
+              status: 1,
+              createdAt: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        totalRecords: {
+          $ifNull: [{ $arrayElemAt: ["$metadata.total", 0] }, 0],
+        },
+        data: "$data",
+      },
+    },
+  ];
+  const result = await repo.aggregate(pipeline);
+  if (!result) {
+    throw new AppError(400, "Failed to fetch admins");
+  }
+  return result;
 };
 
 exports.logout = async (adminId) => {
