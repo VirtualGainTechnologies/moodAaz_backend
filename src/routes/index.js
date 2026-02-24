@@ -3,7 +3,7 @@ const router = require("express").Router();
 // module routes
 const adminRoutes = require("../modules/admin/admin.router");
 const categoryRoutes = require("../modules/category/category.router");
-const otpRouter = require("../modules/otp/otp.router");
+const otpRoutes = require("../modules/otp/otp.router");
 
 // health check
 router.get("/health", (req, res) => {
@@ -16,6 +16,6 @@ router.get("/health", (req, res) => {
 
 router.use("/admin", adminRoutes);
 router.use("/categories", categoryRoutes);
-router.use("/otp", otpRouter);
+router.use("/otp", otpRoutes);
 
 module.exports = router;
