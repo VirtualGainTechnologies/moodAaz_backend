@@ -27,3 +27,7 @@ exports.updateById = (id, payload, options = {}) => {
 exports.deleteById = (id, options = {}) => {
   return Category.findByIdAndDelete(id, options);
 };
+
+exports.deleteMany = (filter = {}, options = {}) => {
+  return Category.deleteMany(filter, options);
+};

@@ -58,9 +58,17 @@ exports.deleteCategory = async (id) => {
   if (!category) {
     throw new AppError(400, "Category not found");
   }
-  const children = await repo.findMany({ parent: id }, "_id", { lean: true });
-  if (children.length) {
-    throw new AppError(400, "Delete child categories first");
-  }
-  return repo.deleteById(id);
+  
+  const categoryIds = [];
+  const collectChildren = async (parentId) => {
+    categoryIds.push(parentId);
+    const children = await repo.findMany({ parent: parentId }, "_id", {
+      lean: true,
+    });
+    for (const child of children) {
+      await collectChildren(child._id);
+    }
+  };
+  await collectChildren(id);
+  return repo.deleteMany({ _id: { $in: categoryIds } });
 };
