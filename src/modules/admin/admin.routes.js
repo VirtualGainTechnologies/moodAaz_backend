@@ -21,6 +21,18 @@ const {
   verifyLoginOtpValidator,
 } = require("./admin.validator");
 
+const { 
+  forgotPasswordSendOtp, 
+  verifyForgotPasswordOtp, 
+  resetPassword 
+} = require("../admin/admin.controller");
+
+const { 
+  forgotPasswordSendOtpValidator, 
+  verifyForgotPasswordOtpValidator, 
+  resetPasswordValidator, 
+} = require("../admin/admin.validator");
+
 // AUTH
 router.post(
   "/auth/register-super-admin",
@@ -60,8 +72,22 @@ router.get(
 router.post("/auth/logout", authenticate, catchAsync("logout api", logout));
 
 // PASSWORD
-// router.post("/forgot-password/send-otp");
-// router.post("/forgot-password/verify-otp");
-// router.post("/forgot-password/reset");
+router.post(
+  "/forgot-password/send-otp",
+  forgotPasswordSendOtpValidator,
+  catchAsync("forgotPasswordSendOtp api", forgotPasswordSendOtp),
+);
+
+router.post(
+  "/forgot-password/verify-otp",
+  verifyForgotPasswordOtpValidator,
+  catchAsync("verifyForgotPasswordOtp api", verifyForgotPasswordOtp),
+);
+
+router.post(
+  "/forgot-password/reset-password",
+  resetPasswordValidator,
+  catchAsync("resetPassword api", resetPassword),
+);
 
 module.exports = router;
