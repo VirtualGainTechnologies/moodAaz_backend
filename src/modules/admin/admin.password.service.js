@@ -14,13 +14,20 @@ exports.forgotPasswordSendOtp = async ({ email }) => {
   };
 };
 
-exports.verifyForgotPasswordOtp = async ({ otpId, otp }) => {
-  const { verified } = await verifyOtp(otpId, otp);
-  if (!verified) throw new AppError(400, "Invalid or expired OTP");
+exports.verifyForgotPasswordOtp = async ({ otpId, email, otp }) => {
+  const { verified, otpRecord } = await verifyOtp(otpId, otp);
 
-  return true; 
+  if (!verified) {
+    throw new AppError(400, "Invalid or expired OTP");
+  }
+
+  // Ensure OTP belongs to the same email
+  if (!otpRecord || otpRecord.email !== email) {
+    throw new AppError(400, "OTP does not match this email");
+  }
+
+  return true;
 };
-
 
 exports.resetPassword = async ({ email, password }) => {
   const admin = await Admin.findOne({ email });
