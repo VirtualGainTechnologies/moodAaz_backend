@@ -106,6 +106,11 @@ exports.forgotPasswordSendOtpValidator = [
 
 // Verify Forgot Password OTP
 exports.verifyForgotPasswordOtpValidator = [
+  body("otpId")
+    .notEmpty()
+    .withMessage("OTP id is required")
+    .isMongoId()
+    .withMessage("Invalid OTP id"),
   body("email")
     .notEmpty()
     .withMessage("Email is required")
