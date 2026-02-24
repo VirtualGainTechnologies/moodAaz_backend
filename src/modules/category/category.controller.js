@@ -14,8 +14,8 @@ exports.createCategory = async (req, res) => {
   });
 };
 
-exports.getCategoryTree = async (req, res) => {
-  const tree = await service.getCategoryTree();
+exports.getAllCategories = async (req, res) => {
+  const tree = await service.getAllCategories();
   if (!tree) {
     throw new AppError(400, "Failed to fetch categories");
   }

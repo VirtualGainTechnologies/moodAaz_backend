@@ -19,9 +19,7 @@ exports.catchAsync = (fnName, fn) => {
 
       await fn(req, res, next);
     } catch (err) {
-      logger.error(
-        `Error in catch block of ${fnName} ===> ${JSON.stringify(err)}`,
-      );
+      logger.error(`Error in catch block of ${fnName} ===> ${err.message}`);
       next(errorHandler(err));
     }
   };

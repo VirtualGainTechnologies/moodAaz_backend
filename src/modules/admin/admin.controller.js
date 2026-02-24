@@ -1,6 +1,7 @@
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 const AppError = require("../../utils/AppError");
 const authService = require("./admin.auth.service");
+const passwordService = require("./admin.password.service");
 
 // AUTH
 exports.registerSuperAdmin = async (req, res) => {
@@ -123,4 +124,44 @@ exports.logout = async (req, res) => {
 };
 
 // PASSWORD
+exports.sendForgotPasswordOtp = async (req, res) => {
+  const result = await passwordService.sendForgotPasswordOtp(req.body);
+  if (!result) {
+    throw new AppError(400, "Failed to send OTP");
+  }
 
+  res.status(200).json({
+    message: "OTP has been sent",
+    error: false,
+    data: result,
+  });
+};
+
+exports.verifyForgotPasswordOtp = async (req, res) => {
+  const result = await passwordService.verifyForgotPasswordOtp(req.body);
+  if (!result) {
+    throw new AppError(400, "Failed to verify OTP");
+  }
+
+  res.status(200).json({
+    message: "OTP verified successfully",
+    error: false,
+    data: null,
+  });
+};
+
+exports.resetForgotPassword = async (req, res) => {
+  const result = await passwordService.resetForgotPassword(req.body, {
+    ip: req.ipAddress,
+    location: req.locationDetails,
+  });
+  if (!result) {
+    throw new AppError(400, "Failed to reset password");
+  }
+
+  res.status(200).json({
+    message: "Password changed successfully",
+    error: false,
+    data: null,
+  });
+};

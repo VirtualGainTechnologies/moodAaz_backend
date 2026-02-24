@@ -32,7 +32,7 @@ exports.createCategory = async (payload) => {
   return repo.create({ ...payload, slug, level });
 };
 
-exports.getCategoryTree = async () => {
+exports.getAllCategories = async () => {
   const categories = await repo.findMany(
     {
       is_active: true,

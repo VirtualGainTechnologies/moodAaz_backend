@@ -84,7 +84,7 @@ const adminSchema = new mongoose.Schema(
       default: "ACTIVE",
     },
   },
-  { versionKey: false, timestamps: true }
+  { versionKey: false, timestamps: true },
 );
 
 // hash password
@@ -100,16 +100,8 @@ adminSchema.methods.comparePassword = function (password) {
 
 // increment login count
 adminSchema.methods.incrementLoginCount = function () {
-  this.loginCount += 1;
+  this.login_count += 1;
   return this.save();
-};
-
-// generate a jwt token
-adminSchema.methods.generateAuthToken = function () {
-  const token = jwt.sign({ _id: this._id }, process.env.USER_JWT_SECRET, {
-    expiresIn: process.env.USER_JWT_EXPIRES_IN,
-  });
-  return token;
 };
 
 module.exports = mongoose.model("admin", adminSchema);

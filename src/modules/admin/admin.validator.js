@@ -94,3 +94,86 @@ exports.getAllSubAdminsValidator = [
 ];
 
 // PASSWORD
+exports.sendForgotPasswordOtpValidator = [
+  body("mode")
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide password change mode")
+    .isIn(["EMAIL", "PHONE"])
+    .withMessage("Mode must be either EMAIL or PHONE"),
+  body("email")
+    .if(body("mode").isIn(["EMAIL"]))
+    .notEmpty()
+    .withMessage("Please provide email id")
+    .trim()
+    .isEmail()
+    .withMessage("Invalid email id")
+    .toLowerCase(),
+  body("phoneCode")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone code"),
+  body("phone")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone number")
+    .custom(async (val) => {
+      if (/^[6-9]{1}[0-9]{9}$/.test(val)) {
+        return true;
+      } else {
+        throw new Error("Invalid phone number");
+      }
+    }),
+];
+
+exports.verifyForgotPasswordOtpValidator = [
+  body("otpId").notEmpty().trim().withMessage("Please provide OTP id"),
+  body("otp")
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide OTP to be verified")
+    .isLength({ min: 6, max: 6 })
+    .withMessage("OTP must be of 6 digit"),
+];
+
+exports.resetForgotPasswordValidator = [
+  body("mode")
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide password change mode")
+    .isIn(["EMAIL", "PHONE"])
+    .withMessage("Mode must be either EMAIL or PHONE"),
+  body("email")
+    .if(body("mode").isIn(["EMAIL"]))
+    .notEmpty()
+    .withMessage("Please provide email id")
+    .trim()
+    .isEmail()
+    .withMessage("Invalid email id")
+    .toLowerCase(),
+  body("phoneCode")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone code"),
+  body("phone")
+    .if(body("mode").isIn(["PHONE"]))
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide phone number")
+    .custom(async (val) => {
+      if (/^[6-9]{1}[0-9]{9}$/.test(val)) {
+        return true;
+      } else {
+        throw new Error("Invalid phone number");
+      }
+    }),
+  body("password")
+    .notEmpty()
+    .trim()
+    .withMessage("Please provide new password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long"),
+];

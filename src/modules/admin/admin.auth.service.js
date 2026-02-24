@@ -111,7 +111,7 @@ exports.sendLoginOtp = async (body) => {
   if (!isPasswordMatched) {
     await admin.incrementLoginCount();
     // block admin if limit exceeded
-    if (admin.login_count + 1 >= 5) {
+    if (admin.login_count >= 5) {
       const updatedAdmin = await repo.updateById(
         admin._id,
         { is_login_attempt_exceeded: true },

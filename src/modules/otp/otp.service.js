@@ -3,10 +3,15 @@ const otpGenerator = require("otp-generator");
 
 const repo = require("./otp.repository");
 const { emailOtpTemplates } = require("../../services/email.templates");
-const { OTP_EXPIRY_MINUTES, OTP_MAX_ATTEMPTS } = require("../../config/env");
+const {
+  OTP_EXPIRY_MINUTES,
+  OTP_MAX_ATTEMPTS,
+  NODE_ENV,
+} = require("../../config/env");
 const { sendEmail, sendSMS } = require("../../services");
 const AppError = require("../../utils/AppError");
 
+const isProduction = NODE_ENV === "production";
 const otpHash = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const generateOtp = () => {
   const otp = otpGenerator.generate(6, {
@@ -30,7 +35,7 @@ exports.sendEmailOtp = async (email, type) => {
 
     const otpRecord = await repo.create({
       email,
-      otp: otpHash(otp),
+      otp: isProduction ? otpHash(otp) : otp,
       expires_at: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
     });
 
@@ -61,7 +66,7 @@ exports.sendEmailOtp = async (email, type) => {
   }
 };
 
-exports.sendMobileOtp = async (phone, phoneCode) => {
+exports.sendMobileOtp = async (phoneCode, phone) => {
   let otpRecordId;
   try {
     if (!phone || !phoneCode)
@@ -73,7 +78,7 @@ exports.sendMobileOtp = async (phone, phoneCode) => {
     const otpRecord = await repo.create({
       phone,
       phone_code: phoneCode,
-      otp: otpHash(otp),
+      otp: isProduction ? otpHash(otp) : otp,
       expires_at: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
     });
     if (!otpRecord) {
@@ -92,6 +97,7 @@ exports.sendMobileOtp = async (phone, phoneCode) => {
     return {
       otpId: otpRecord._id,
       phone,
+      phoneCode,
       expiresIn: `${OTP_EXPIRY_MINUTES} minutes`,
     };
   } catch (err) {
@@ -120,7 +126,11 @@ exports.verifyOtp = async (id, otp) => {
       throw new AppError(429, "OTP attempt limit exceeded");
     }
 
-    if (otpRecord.otp !== otpHash(otp)) {
+    const isOtpValid = isProduction
+      ? otpRecord.otp === otpHash(otp)
+      : otpRecord.otp === otp;
+
+    if (!isOtpValid) {
       await repo.updateById(
         otpRecord._id,
         { $inc: { attempts: 1 } },

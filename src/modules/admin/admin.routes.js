@@ -13,12 +13,18 @@ const {
   verifyLoginOtp,
   getAdminProfile,
   logout,
+  sendForgotPasswordOtp,
+  verifyForgotPasswordOtp,
+  resetForgotPassword,
 } = require("./admin.controller");
 const {
   registerSuperAdminValidator,
   upsertSubAdminValidator,
   sendLoginOtpValidator,
   verifyLoginOtpValidator,
+  sendForgotPasswordOtpValidator,
+  verifyForgotPasswordOtpValidator,
+  resetForgotPasswordValidator,
 } = require("./admin.validator");
 
 // AUTH
@@ -60,8 +66,21 @@ router.get(
 router.post("/auth/logout", authenticate, catchAsync("logout api", logout));
 
 // PASSWORD
-// router.post("/forgot-password/send-otp");
-// router.post("/forgot-password/verify-otp");
-// router.post("/forgot-password/reset");
+router.post(
+  "/forgot-password/send-otp",
+  sendForgotPasswordOtpValidator,
+  catchAsync("sendForgotPasswordOtp api", sendForgotPasswordOtp),
+);
+router.post(
+  "/forgot-password/verify-otp",
+  verifyForgotPasswordOtpValidator,
+  catchAsync("verifyForgotPasswordOtp api", verifyForgotPasswordOtp),
+);
+router.post(
+  "/forgot-password/reset",
+  resetForgotPasswordValidator,
+  catchAsync("getIpAndLocation middleware", getIpAndLocation),
+  catchAsync("resetForgotPassword api", resetForgotPassword),
+);
 
 module.exports = router;

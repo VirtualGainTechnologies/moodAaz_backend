@@ -4,7 +4,7 @@ const { authenticate, authorize } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catchAsync");
 const {
   createCategory,
-  getCategoryTree,
+  getAllCategories,
   updateCategory,
   deleteCategory,
 } = require("./category.controller");
@@ -26,7 +26,7 @@ router.get(
   "/",
   authenticate,
   authorize("SUPER-ADMIN"),
-  catchAsync("getCategoriesTree api", getCategoryTree),
+  catchAsync("getAllCategories api", getAllCategories),
 );
 
 router.put(

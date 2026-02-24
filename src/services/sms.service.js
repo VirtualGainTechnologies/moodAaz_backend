@@ -10,16 +10,23 @@ const {
 } = require("../config/env");
 const AppError = require("../utils/AppError");
 
-exports.sendSMS = async ({ mobile, message }) => {
-  if (!mobile || !message)
-    throw new AppError(400, "Mobile and message required");
-  const isInternational = mobile.startsWith("+91") || mobile.startsWith("91");
+exports.sendSMS = async ({ mobileNumber, message }) => {
+  if (!mobileNumber || !message)
+    throw new AppError(
+      400,
+      `${!mobileNumber ? "Mobile" : "Message"} is required`,
+    );
+  const isInternational =
+    mobileNumber.startsWith("+91") || mobileNumber.startsWith("91");
 
   const options = {
     hostname: "www.smsgateway.center",
     path: "/SMSApi/rest/send",
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      "cache-control": "no-cache",
+    },
   };
 
   const requestBody = queryString.stringify({
@@ -28,7 +35,7 @@ exports.sendSMS = async ({ mobile, message }) => {
     senderId: OTP_SENDER_ID,
     sendMethod: "simpleMsg",
     msgType: "text",
-    mobile,
+    mobile: mobileNumber,
     msg: message,
     duplicateCheck: "true",
     format: "JSON",
@@ -38,12 +45,26 @@ exports.sendSMS = async ({ mobile, message }) => {
     const req = https.request(options, (res) => {
       const chunks = [];
       res.on("data", (chunk) => chunks.push(chunk));
-      res.on("end", () =>
-        resolve(JSON.parse(Buffer.concat(chunks).toString())),
-      );
+      res.on("end", () => {
+        try {
+          const response = JSON.parse(Buffer.concat(chunks).toString());
+          console.log("response", response);
+          if (!response || response.status !== "success") {
+            return reject(
+              new AppError(
+                502,
+                response?.reason || "Failed to send SMS OTP",
+              ),
+            );
+          }
+          resolve(response);
+        } catch (err) {
+          reject(new AppError(500, "Invalid response from SMS gateway"));
+        }
+      });
     });
 
-    req.on("error", (err) => reject(err));
+    req.on("error", () => reject(new AppError(503, "SMS service unavailable")));
     req.write(requestBody);
     req.end();
   });
