@@ -148,3 +148,16 @@ exports.verifyOtp = async (id, otp) => {
     throw new AppError(400, err.message);
   }
 };
+
+exports.resendOtp = async (payload) => {
+  const { type, emailOtpType, phone, phoneCode, email } = payload;
+  const result =
+    type === "email"
+      ? await this.sendEmailOtp(email, emailOtpType)
+      : await this.sendMobileOtp(phone, phoneCode);
+
+  if (!result) {
+    throw new AppError("Failed to send otp");
+  }
+  return result;
+};

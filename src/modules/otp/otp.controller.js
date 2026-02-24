@@ -1,11 +1,11 @@
-const { sendEmailOtp, sendMobileOtp } = require("./otp.service");
+const AppError = require("../../utils/AppError");
+const service = require("./otp.service");
 
 exports.resendOtp = async (req, res) => {
-  const { type, emailOtpType, phone, phoneCode, email } = req.body;
-  const result =
-    type === "email"
-      ? await sendEmailOtp(email, emailOtpType)
-      : await sendMobileOtp(phone, phoneCode);
+  const result = await service.resendOtp(req.body);
+  if (!result) {
+    throw new AppError("Failed to send otp");
+  }
 
   res.status(200).json({
     message: "OTP sent successfully",
