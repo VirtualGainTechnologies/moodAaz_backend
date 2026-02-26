@@ -1,5 +1,5 @@
-const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
-const AppError = require("../../utils/AppError");
+const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env.config");
+const AppError = require("../../utils/app-error");
 const authService = require("./admin.auth.service");
 const passwordService = require("./admin.password.service");
 

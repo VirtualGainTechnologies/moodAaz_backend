@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const retry = require("async-retry");
 
-const { logger } = require("../utils/winstonLogger");
+const { logger } = require("../config");
 
 exports.commitWithRetry = async (session) => {
   await retry(
@@ -25,7 +25,7 @@ exports.commitWithRetry = async (session) => {
       minTimeout: 1000, // first retry delay = 1s
       maxTimeout: 8000, // cap retries at 8s
       randomize: true,
-    }
+    },
   );
 };
 
@@ -123,6 +123,6 @@ exports.runTxnWithRetry = async (fn) => {
       minTimeout: 100,
       maxTimeout: 2000,
       randomize: true,
-    }
+    },
   );
 };

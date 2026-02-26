@@ -1,5 +1,5 @@
-const { verifyJwtToken } = require("../utils/jwt");
-const AppError = require("../utils/AppError");
+const { verifyJwtToken } = require("../utils/jwt.util");
+const AppError = require("../utils/app-error");
 const adminRepo = require("../modules/admin/admin.repository");
 const userRepo = require("../modules/user/user.repository");
 
@@ -15,7 +15,7 @@ module.exports = async (req, res, next) => {
     if (decoded.error) {
       return next(new AppError(401, "Invalid or expired token"));
     }
-    
+
     const authenticatedUser =
       decoded.data.type === "ADMIN"
         ? await adminRepo.findOne({ token }, "_id role", { lean: true })

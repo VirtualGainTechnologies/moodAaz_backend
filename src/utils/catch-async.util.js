@@ -2,12 +2,12 @@ const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
 const retry = require("async-retry");
 
-const AppError = require("./AppError");
+const AppError = require("./app-error");
 const {
   commitWithRetry,
   isTransientError,
-} = require("../utils/mongoTransaction");
-const { logger } = require("./winstonLogger");
+} = require("./transaction-retry.util");
+const { logger } = require("../config");
 
 exports.catchAsync = (fnName, fn) => {
   return async (req, res, next) => {

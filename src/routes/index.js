@@ -4,6 +4,7 @@ const router = require("express").Router();
 const adminRoutes = require("../modules/admin/admin.router");
 const categoryRoutes = require("../modules/category/category.router");
 const otpRoutes = require("../modules/otp/otp.router");
+const mediaRoutes = require("../modules/media/media.router");
 
 // health check
 router.get("/health", (req, res) => {
@@ -17,5 +18,6 @@ router.get("/health", (req, res) => {
 router.use("/admin", adminRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/otp", otpRoutes);
+router.use("/media", mediaRoutes);
 
 module.exports = router;

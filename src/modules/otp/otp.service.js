@@ -2,14 +2,14 @@ const crypto = require("crypto");
 const otpGenerator = require("otp-generator");
 
 const repo = require("./otp.repository");
-const { emailOtpTemplates } = require("../../services/email.templates");
+const { emailOtpTemplates } = require("../../services/email.template");
 const {
   OTP_EXPIRY_MINUTES,
   OTP_MAX_ATTEMPTS,
   NODE_ENV,
-} = require("../../config/env");
+} = require("../../config/env.config");
 const { sendEmail, sendSMS } = require("../../services");
-const AppError = require("../../utils/AppError");
+const AppError = require("../../utils/app-error");
 
 const isProduction = NODE_ENV === "production";
 const otpHash = (otp) => crypto.createHash("sha256").update(otp).digest("hex");

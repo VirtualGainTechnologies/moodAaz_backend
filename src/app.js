@@ -6,15 +6,12 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const useragent = require("express-useragent");
 
-const AppError = require("./utils/AppError");
-const { logger } = require("./utils/winstonLogger");
+const AppError = require("./utils/app-error");
 const apiRoutes = require("./routes");
 const {
-  NODE_ENV,
-  CLIENT_BASE_URL1,
-  CLIENT_BASE_URL2,
-  COOKIE_SIGNING_SECRET,
-} = require("./config/env");
+  logger,
+  env: { NODE_ENV, CLIENT_BASE_URL1, CLIENT_BASE_URL2, COOKIE_SIGNING_SECRET },
+} = require("./config");
 const { errorHandler } = require("./middlewares");
 
 // app

@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const { authenticate, authorize } = require("../../middlewares");
-const { catchAsync } = require("../../utils/catchAsync");
+const { catchAsync } = require("../../utils/catch-async.util");
 const {
   createCategory,
   getAllCategories,

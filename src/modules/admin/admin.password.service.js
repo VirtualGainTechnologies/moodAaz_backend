@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 
-const AppError = require("../../utils/AppError");
+const AppError = require("../../utils/app-error");
 const {
   sendMobileOtp,
   sendEmailOtp,

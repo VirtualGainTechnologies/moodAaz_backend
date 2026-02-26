@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 
-const AppError = require("../../utils/AppError");
+const AppError = require("../../utils/app-error");
 const repo = require("./admin.repository");
-const { generateJwtToken } = require("../../utils/jwt");
+const { generateJwtToken } = require("../../utils/jwt.util");
 const { sendEmailOtp, verifyOtp } = require("../otp/otp.service");
 
 exports.registerSuperAdmin = async (body, meta) => {

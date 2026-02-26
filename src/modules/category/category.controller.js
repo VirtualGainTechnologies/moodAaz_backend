@@ -1,4 +1,4 @@
-const AppError = require("../../utils/AppError");
+const AppError = require("../../utils/app-error");
 const service = require("./category.service");
 
 exports.createCategory = async (req, res) => {

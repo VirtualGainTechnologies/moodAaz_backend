@@ -1,6 +1,6 @@
 const slugify = require("slugify");
 const repo = require("./category.repository");
-const AppError = require("../../utils/AppError");
+const AppError = require("../../utils/app-error");
 
 const buildTree = (categories, parentId = null) => {
   return categories
@@ -58,7 +58,7 @@ exports.deleteCategory = async (id) => {
   if (!category) {
     throw new AppError(400, "Category not found");
   }
-  
+
   const categoryIds = [];
   const collectChildren = async (parentId) => {
     categoryIds.push(parentId);

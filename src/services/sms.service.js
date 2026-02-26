@@ -7,8 +7,8 @@ const {
   OTP_USER_ID_INTERNATIONAL,
   OTP_PASSWORD_INTERNATIONAL,
   OTP_SENDER_ID,
-} = require("../config/env");
-const AppError = require("../utils/AppError");
+} = require("../config/env.config");
+const AppError = require("../utils/app-error");
 
 exports.sendSMS = async ({ mobileNumber, message }) => {
   if (!mobileNumber || !message)
@@ -51,10 +51,7 @@ exports.sendSMS = async ({ mobileNumber, message }) => {
           console.log("response", response);
           if (!response || response.status !== "success") {
             return reject(
-              new AppError(
-                502,
-                response?.reason || "Failed to send SMS OTP",
-              ),
+              new AppError(502, response?.reason || "Failed to send SMS OTP"),
             );
           }
           resolve(response);

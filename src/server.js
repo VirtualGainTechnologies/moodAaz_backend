@@ -1,8 +1,10 @@
 require("dotenv").config();
 const app = require("./app");
 const { connectDB } = require("./config");
-const { logger } = require("./utils/winstonLogger");
-const { PORT } = require("./config/env");
+const {
+  logger,
+  env: { PORT },
+} = require("./config");
 
 // bootstrap
 (async () => {
