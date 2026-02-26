@@ -4,7 +4,7 @@ const Admin = require("./admin.model");
 const AppError = require("../../utils/AppError");
 const {sendEmailOtp, sendMobileOtp, verifyOtp } = require("../../modules/otp/otp.service");
 
-
+  
 exports.forgotPasswordSendOtp = async ({ mode, email, phone, phoneCode }) => {
   let otpData;
 
