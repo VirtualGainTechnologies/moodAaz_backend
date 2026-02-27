@@ -2,7 +2,6 @@ const { registerUser, loginUser } = require("./user.service");
 const AppError = require("../../utils/AppError");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
-
 // Register Controller
 
 exports.register = async (req, res, next) => {
