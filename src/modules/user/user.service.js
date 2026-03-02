@@ -48,7 +48,7 @@ exports.loginUser = async ({ email, password }) => {
   const user = await repo.findOne({ email }).select("+password");
   if (!user) throw new AppError(400, "Invalid email or password");
 
-  // Verify password
+  // Compare password
   const isValid = await user.comparePassword(password);
   if (!isValid) throw new AppError(400, "Invalid email or password");
 
