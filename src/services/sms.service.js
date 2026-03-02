@@ -7,7 +7,7 @@ const {
   OTP_USER_ID_INTERNATIONAL,
   OTP_PASSWORD_INTERNATIONAL,
   OTP_SENDER_ID,
-} = require("../config/env.config");
+} = require("../config/env");
 const AppError = require("../utils/app-error");
 
 exports.sendSMS = async ({ mobileNumber, message }) => {

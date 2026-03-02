@@ -9,10 +9,10 @@ const useragent = require("express-useragent");
 const AppError = require("./utils/app-error");
 const apiRoutes = require("./routes");
 const {
-  logger,
   env: { NODE_ENV, CLIENT_BASE_URL1, CLIENT_BASE_URL2, COOKIE_SIGNING_SECRET },
 } = require("./config");
 const { errorHandler } = require("./middlewares");
+const logger = require("./utils/logger");
 
 // app
 const app = express();

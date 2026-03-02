@@ -1,6 +1,6 @@
 const { createLogger, format, transports } = require("winston");
 const { combine, timestamp, printf, splat } = format;
-const { NODE_ENV } = require("./env.config");
+const { NODE_ENV } = require("../config/env");
 
 const enumerateErrorFormat = format((info) => {
   if (info instanceof Error) {

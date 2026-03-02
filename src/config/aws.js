@@ -4,7 +4,7 @@ const {
   AWS_REGION,
   SPACE_ACCESS_KEY,
   SPACE_SECRET_ACCESS_KEY,
-} = require("./env.config");
+} = require("./env");
 
 module.exports = new S3Client({
   region: AWS_REGION,

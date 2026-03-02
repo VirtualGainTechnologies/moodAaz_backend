@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const { MONGO_URI, NODE_ENV } = require("./env.config");
-const logger = require("./logger.config");
+const { MONGO_URI, NODE_ENV } = require("./env");
+const logger = require("../utils/logger");
 
 module.exports = async () => {
   try {

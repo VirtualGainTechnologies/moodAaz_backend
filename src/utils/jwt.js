@@ -1,9 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-const {
-  JWT_ACCESS_SECRET,
-  JWT_ACCESS_EXPIRES_IN,
-} = require("../config/env.config");
+const { JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN } = require("../config/env");
 
 exports.generateJwtToken = (
   payload = {},

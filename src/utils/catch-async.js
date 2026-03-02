@@ -6,7 +6,7 @@ const AppError = require("./app-error");
 const {
   commitWithRetry,
   isTransientError,
-} = require("./transaction-retry.util");
+} = require("./transaction-retry");
 const { logger } = require("../config");
 
 exports.catchAsync = (fnName, fn) => {

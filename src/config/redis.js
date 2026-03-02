@@ -1,7 +1,7 @@
 const Redis = require("ioredis");
 
-const { REDIS_URL } = require("./env.config");
-const logger = require("./logger.config");
+const { REDIS_URL } = require("./env");
+const logger = require("../utils/logger");
 
 const redis = new Redis(REDIS_URL);
 redis.on("connect", () => {

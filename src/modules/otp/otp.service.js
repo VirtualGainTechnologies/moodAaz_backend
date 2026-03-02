@@ -7,7 +7,7 @@ const {
   OTP_EXPIRY_MINUTES,
   OTP_MAX_ATTEMPTS,
   NODE_ENV,
-} = require("../../config/env.config");
+} = require("../../config/env");
 const { sendEmail, sendSMS } = require("../../services");
 const AppError = require("../../utils/app-error");
 

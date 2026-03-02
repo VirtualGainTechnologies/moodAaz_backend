@@ -5,7 +5,7 @@ const {
   authorize,
   getIpAndLocation,
 } = require("../../middlewares");
-const { catchAsync } = require("../../utils/catch-async.util");
+const { catchAsync } = require("../../utils/catch-async");
 const {
   registerSuperAdmin,
   upsertSubAdmin,

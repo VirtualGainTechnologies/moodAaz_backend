@@ -1,10 +1,10 @@
 require("dotenv").config();
 const app = require("./app");
-const { connectDB } = require("./config");
 const {
-  logger,
+  connectDB,
   env: { PORT },
 } = require("./config");
+const logger = require("./utils/logger");
 
 // bootstrap
 (async () => {

@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const { multer, authenticate, authorize } = require("../../middlewares");
-const { catchAsync } = require("../../utils/catch-async.util");
+const { catchAsync } = require("../../utils/catch-async");
 const { createMedia, deleteMedia } = require("./media.controller");
 const {
   deleteMediaValidator,

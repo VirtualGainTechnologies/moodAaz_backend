@@ -1,4 +1,4 @@
-const { verifyJwtToken } = require("../utils/jwt.util");
+const { verifyJwtToken } = require("../utils/jwt");
 const AppError = require("../utils/app-error");
 const adminRepo = require("../modules/admin/admin.repository");
 const userRepo = require("../modules/user/user.repository");
