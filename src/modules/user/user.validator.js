@@ -1,8 +1,6 @@
 const { body } = require("express-validator");
 
-
 // Register Validator
-
 exports.registerValidator = [
   body("first_name")
     .notEmpty()
@@ -40,9 +38,7 @@ exports.registerValidator = [
   body("address.country").optional().trim(),
 ];
 
-
 // Login Validator
-
 exports.loginValidator = [
   body("email")
     .isEmail()

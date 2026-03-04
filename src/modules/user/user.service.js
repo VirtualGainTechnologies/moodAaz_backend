@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 const repo = require("./user.repository");
 const AppError = require("../../utils/AppError");
 
-
 // Generate JWT token
 const generateJwtToken = (user) => {
   if (!process.env.JWT_ACCESS_SECRET) {
@@ -41,7 +40,6 @@ exports.registerUser = async ({ first_name, last_name, email, password, phone, a
 
 // Login User
 exports.loginUser = async ({ email, password }) => {
-  // Find user by email and include password for verification
   const user = await repo.findOne({ email }).select("+password");
   if (!user) throw new AppError(400, "Invalid email or password");
 
