@@ -3,7 +3,6 @@ const validator = require("validator");
 const bcrypt = require("bcryptjs");
 
 // User Schema
-
 const userSchema = new mongoose.Schema(
   {
     first_name: {
@@ -51,20 +50,17 @@ const userSchema = new mongoose.Schema(
 );
 
 // Middleware: Hash password before saving
-
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
 // Methods: Compare password
-
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
 // Methods: Generate JWT token
-
 userSchema.methods.generateAuthToken = function () {
   if (!process.env.JWT_ACCESS_SECRET) {
     throw new Error("JWT_ACCESS_SECRET is missing in environment variables!");
@@ -76,7 +72,5 @@ userSchema.methods.generateAuthToken = function () {
     { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "7d" }
   );
 };
-
-// Export User model
 
 module.exports = mongoose.model("User", userSchema);

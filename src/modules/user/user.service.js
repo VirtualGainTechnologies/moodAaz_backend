@@ -3,8 +3,7 @@ const repo = require("./user.repository");
 const AppError = require("../../utils/AppError");
 
 
-// Helper: Generate JWT token
-
+// Generate JWT token
 const generateJwtToken = (user) => {
   if (!process.env.JWT_ACCESS_SECRET) {
     throw new AppError(500, "JWT_ACCESS_SECRET is not defined in environment variables");
@@ -18,7 +17,6 @@ const generateJwtToken = (user) => {
 };
 
   // Register User
-
 exports.registerUser = async ({ first_name, last_name, email, password, phone, address }) => {
   // Check if email already exists
   const existing = await repo.findOne({ email });
@@ -42,7 +40,6 @@ exports.registerUser = async ({ first_name, last_name, email, password, phone, a
 
 
 // Login User
-
 exports.loginUser = async ({ email, password }) => {
   // Find user by email and include password for verification
   const user = await repo.findOne({ email }).select("+password");
