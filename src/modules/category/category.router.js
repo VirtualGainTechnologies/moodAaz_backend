@@ -36,6 +36,7 @@ router.put(
   updateCategoryValidator,
   catchAsync("updateCategory api", updateCategory),
 );
+
 router.delete(
   "/delete/:id",
   authenticate,

@@ -7,7 +7,7 @@ const {
   commitWithRetry,
   isTransientError,
 } = require("./transaction-retry");
-const { logger } = require("../config");
+const logger = require("./logger");
 
 exports.catchAsync = (fnName, fn) => {
   return async (req, res, next) => {
