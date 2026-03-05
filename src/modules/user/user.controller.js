@@ -1,70 +1,72 @@
-const { registerUser, loginUser } = require("./user.service");
-const AppError = require("../../utils/AppError");
+const {
+  registerSendOtp,
+  registerVerifyOtp,
+  loginSendOtp,
+  loginVerifyOtp,
+} = require("./user.service");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
-// Register Controller
+const setUserCookie = (res, token) => {
+  res.cookie("user_token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: COOKIE_EXPIRATION_MILLISECONDS,
+  });
+};
 
-exports.register = async (req, res, next) => {
+// OTP-BASED REGISTER
+exports.registerSendOtp = async (req, res, next) => {
   try {
-    // Call service to register user
-    const { user, token } = await registerUser(req.body);
-
-    // Set JWT token in httpOnly cookie
-    res.cookie("user_token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: COOKIE_EXPIRATION_MILLISECONDS,
-    });
-
-    // Send response
-    res.status(201).json({
-      message: "User registered successfully",
+    const result = await registerSendOtp(req.body);
+    res.status(200).json({
+      message: result.message,
       error: false,
-      data: {
-        id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-      },
+      otpId: result.otpId,
     });
   } catch (err) {
-    next(err); // Pass errors to error handler middleware
+    next(err);
   }
 };
 
-
-// Login Controller
-
-exports.login = async (req, res, next) => {
+exports.registerVerifyOtp = async (req, res, next) => {
   try {
-    // Call service to login user
-    const { user, token } = await loginUser(req.body);
-
-    // Set JWT token in httpOnly cookie
-    res.cookie("user_token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: COOKIE_EXPIRATION_MILLISECONDS,
+    const { user, token } = await registerVerifyOtp(req.body);
+    setUserCookie(res, token);
+    res.status(201).json({
+      message: "User registered successfully",
+      error: false,
+      data: user,
     });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    // Send response
+// OTP-BASED LOGIN
+exports.loginSendOtp = async (req, res, next) => {
+  try {
+    const result = await loginSendOtp(req.body);
+    res.status(200).json({
+      message: result.message,
+      error: false,
+      otpId: result.otpId,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.loginVerifyOtp = async (req, res, next) => {
+  try {
+    const { user, token } = await loginVerifyOtp(req.body);
+    setUserCookie(res, token);
     res.status(200).json({
       message: "Login successful",
       error: false,
-      data: {
-        id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-      },
+      data: user,
     });
   } catch (err) {
-    next(err); // Pass errors to error handler middleware
+    next(err);
   }
 };

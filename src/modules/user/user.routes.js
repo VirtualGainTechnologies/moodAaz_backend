@@ -1,47 +1,43 @@
 const router = require("express").Router();
-const { register, login } = require("./user.controller");
-const { body } = require("express-validator");
 const { catchAsync } = require("../../utils/catchAsync");
 
-// Validators
+const {
+  registerSendOtp,
+  registerVerifyOtp,
+  loginSendOtp,
+  loginVerifyOtp,
+} = require("./user.controller");
 
-// Register validator
-const registerValidator = [
-  body("first_name")
-    .notEmpty()
-    .withMessage("First name required"),
-  body("email")
-    .isEmail()
-    .withMessage("Invalid email"),
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters"),
-];
+const {
+  registerOtpSendValidator,
+  registerOtpVerifyValidator,
+  loginOtpSendValidator,
+  loginOtpVerifyValidator,
+} = require("./user.validator");
 
-// Login validator
-const loginValidator = [
-  body("email")
-    .isEmail()
-    .withMessage("Invalid email"),
-  body("password")
-    .notEmpty()
-    .withMessage("Password required"),
-];
-
-// Routes
-
-// Register route
+// OTP-Based Routes
 router.post(
-  "/register",
-  registerValidator,
-  catchAsync("register api", register)
+  "/register/send-otp",
+  registerOtpSendValidator,
+  catchAsync("register send otp", registerSendOtp)
 );
 
-// Login route
 router.post(
-  "/login",
-  loginValidator,
-  catchAsync("login api", login)
+  "/register/verify-otp",
+  registerOtpVerifyValidator,
+  catchAsync("register verify otp", registerVerifyOtp)
+);
+
+router.post(
+  "/login/send-otp",
+  loginOtpSendValidator,
+  catchAsync("login send otp", loginSendOtp)
+);
+
+router.post(
+  "/login/verify-otp",
+  loginOtpVerifyValidator,
+  catchAsync("login verify otp", loginVerifyOtp)
 );
 
 module.exports = router;

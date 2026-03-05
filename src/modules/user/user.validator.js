@@ -1,54 +1,77 @@
 const { body } = require("express-validator");
 
-// Register Validator
-exports.registerValidator = [
-  body("first_name")
-    .notEmpty()
-    .withMessage("First name is required")
-    .trim(),
-  
-  body("last_name")
-    .optional()
-    .trim(),
-  
+// REGISTER SEND OTP
+exports.registerOtpSendValidator = [
   body("email")
+    .notEmpty()
+    .withMessage("Email is required")
     .isEmail()
-    .withMessage("Please provide a valid email address")
-    .normalizeEmail()
-    .notEmpty()
-    .withMessage("Email is required"),
-  
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters")
-    .trim()
-    .notEmpty()
-    .withMessage("Password is required"),
-  
+    .withMessage("Please provide a valid email")
+    .normalizeEmail(),
+
   body("phone")
     .optional()
     .isMobilePhone()
-    .withMessage("Please provide a valid phone number")
-    .trim(),
-  
-  body("address.street").optional().trim(),
-  body("address.city").optional().trim(),
-  body("address.state").optional().trim(),
-  body("address.zip").optional().trim(),
-  body("address.country").optional().trim(),
+    .withMessage("Please provide a valid phone number"),
 ];
 
-// Login Validator
-exports.loginValidator = [
-  body("email")
-    .isEmail()
-    .withMessage("Please provide a valid email address")
-    .normalizeEmail()
+//REGISTER VERIFY OTP
+exports.registerOtpVerifyValidator = [
+  body("otpId")
     .notEmpty()
-    .withMessage("Email is required"),
-  
+    .withMessage("OTP ID is required")
+    .isMongoId()
+    .withMessage("OTP ID must be a valid Mongo ID"),
+
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email")
+    .normalizeEmail(),
+
+  body("otp")
+    .notEmpty()
+    .withMessage("OTP is required"),
+
+  body("first_name")
+    .notEmpty()
+    .withMessage("First name is required"),
+
   body("password")
     .notEmpty()
     .withMessage("Password is required")
-    .trim(),
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
+];
+
+
+// LOGIN SEND OTP
+exports.loginOtpSendValidator = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email")
+    .normalizeEmail(),
+];
+
+// LOGIN VERIFY OTP
+exports.loginOtpVerifyValidator = [
+  body("otpId")
+    .notEmpty()
+    .withMessage("OTP ID is required")
+    .isMongoId()
+    .withMessage("OTP ID must be a valid Mongo ID"),
+
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email")
+    .normalizeEmail(),
+
+  body("otp")
+    .notEmpty()
+    .withMessage("OTP is required"),
 ];

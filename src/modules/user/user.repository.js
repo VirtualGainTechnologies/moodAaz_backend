@@ -23,3 +23,18 @@ exports.updateById = (id, payload = {}, options = {}) =>
 // delete
 exports.deleteById = (id, options = {}) =>
   User.findByIdAndDelete(id, options);
+
+// // OTP helpers
+// exports.updateOtpByEmail = (email, otp, otpExpiresAt) =>
+//   User.findOneAndUpdate(
+//     { email },
+//     { otp, otpExpiresAt },
+//     { new: true }
+//   );
+
+// exports.clearOtpByEmail = (email) =>
+//   User.findOneAndUpdate(
+//     { email },
+//     { otp: undefined, otpExpiresAt: undefined },
+//     { new: true }
+//   );

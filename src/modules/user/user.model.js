@@ -1,14 +1,13 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-// User Schema
 const userSchema = new mongoose.Schema(
   {
     first_name: {
       type: String,
       trim: true,
-      required: [true, "First name is required"],
     },
     last_name: {
       type: String,
@@ -25,7 +24,6 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       trim: true,
-      required: [true, "Password is required"],
       select: false,
     },
     phone: {
@@ -45,22 +43,26 @@ const userSchema = new mongoose.Schema(
       enum: ["ACTIVE", "BLOCKED"],
       default: "ACTIVE",
     },
+
+    // OTP Fields
+    otp: { type: String, trim: true },
+    otpExpiresAt: { type: Date },
   },
   { versionKey: false, timestamps: true }
 );
 
-// Middleware: Hash password before saving
+// Hash password 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-// Methods: Compare password
+// Compare password
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-// Methods: Generate JWT token
+// Generate JWT token
 userSchema.methods.generateAuthToken = function () {
   if (!process.env.JWT_ACCESS_SECRET) {
     throw new Error("JWT_ACCESS_SECRET is missing in environment variables!");
