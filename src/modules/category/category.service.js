@@ -50,7 +50,7 @@ exports.getAllCategories = async () => {
 
 exports.updateCategory = async (id, name) => {
   const slug = slugify(name, { lower: true });
-  return repo.updateById(id, { name, slug }, { new: true });
+  return repo.updateById(id, { name, slug }, { returnDocument: "after" });
 };
 
 exports.deleteCategory = async (id) => {

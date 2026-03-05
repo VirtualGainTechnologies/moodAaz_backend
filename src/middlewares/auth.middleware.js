@@ -25,7 +25,10 @@ module.exports = async (req, res, next) => {
       throw new AppError(401, "Session is expired, please login again");
     }
 
-    req.user = authenticatedUser;
+    req.user = {
+      _id: authenticatedUser._id,
+      role: authenticatedUser.role,
+    };
     req.auth = decoded.data;
     next();
   } catch (err) {

@@ -6,6 +6,7 @@ const categoryRoutes = require("../modules/category/category.router");
 const otpRoutes = require("../modules/otp/otp.router");
 const mediaRoutes = require("../modules/media/media.router");
 const productRoutes = require("../modules/product/product.router");
+const reviewRoutes = require("../modules/review/review.router");
 
 // health check
 router.get("/health", (req, res) => {
@@ -19,6 +20,7 @@ router.get("/health", (req, res) => {
 router.use("/admin", adminRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/products", productRoutes);
+router.use("/reviews", reviewRoutes);
 router.use("/otp", otpRoutes);
 router.use("/media", mediaRoutes);
 

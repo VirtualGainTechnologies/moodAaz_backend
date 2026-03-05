@@ -206,8 +206,7 @@ exports.getAllProducts = async (query) => {
               "variants.sale_price": 1,
               "variants.stock": 1,
               "variants.attributes": 1,
-              ratings_average: 1,
-              ratings_quantity: 1,
+              ratings: 1,
               is_featured: 1,
               is_new_arrival: 1,
               is_signature: 1,
@@ -246,7 +245,7 @@ exports.getProductDetails = async (productId) => {
       $lookup: {
         from: "reviews",
         localField: "_id",
-        foreignField: "product",
+        foreignField: "product_id",
         as: "reviews",
       },
     },
@@ -297,8 +296,7 @@ exports.getProductDetails = async (productId) => {
         is_new_arrival: 1,
         is_best_seller: 1,
         is_signature: 1,
-        ratings_average: 1,
-        ratings_quantity: 1,
+        ratings: 1,
         total_stock: 1,
         in_stock: 1,
         weight_in_grams: 1,
@@ -332,7 +330,7 @@ exports.updateProduct = async (productId, data) => {
       ...(price && { price }),
     },
     {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     },
   );

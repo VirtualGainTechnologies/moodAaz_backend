@@ -69,7 +69,7 @@ exports.resetForgotPassword = async (payload, meta) => {
       last_login_ip: meta.ip,
       last_login_location: meta.location,
     },
-    { new: true },
+    { returnDocument: "after" },
   );
 
   if (!updatedAdmin) {

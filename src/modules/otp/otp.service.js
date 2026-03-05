@@ -134,7 +134,7 @@ exports.verifyOtp = async (id, otp) => {
       await repo.updateById(
         otpRecord._id,
         { $inc: { attempts: 1 } },
-        { new: true },
+        { returnDocument: "after" },
       );
       throw new AppError(400, "Invalid OTP");
     }
@@ -152,7 +152,7 @@ exports.verifyOtp = async (id, otp) => {
 exports.resendOtp = async (payload) => {
   const { type, emailOtpType, phone, phoneCode, email } = payload;
   const result =
-    type === "email"
+    type === "EMAIL"
       ? await this.sendEmailOtp(email, emailOtpType)
       : await this.sendMobileOtp(phone, phoneCode);
 

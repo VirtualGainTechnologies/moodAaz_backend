@@ -2,6 +2,21 @@ const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema(
   {
+    title: {
+      type: String,
+      maxlength: 120,
+    },
+    comment: {
+      type: String,
+      required: [true, "Review comment is required"],
+      minlength: 10,
+    },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      required: [true, "Rating is required"],
+    },
     product_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "product",
@@ -12,32 +27,25 @@ const reviewSchema = new mongoose.Schema(
       ref: "user",
       required: [true, "User id is required"],
     },
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
-      required: [true, "Rating is required"],
-    },
-    title: {
-      type: String,
-      maxlength: 120,
-    },
-    comment: {
-      type: String,
-      required: [true, "Review comment is required"],
-      minlength: 10,
+    votes: {
+      likes: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      dislikes: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
     },
     is_verified_purchase: {
       type: Boolean,
       default: false,
     },
-    helpful_votes: {
+    date: {
       type: Number,
-      default: 0,
-    },
-    reported: {
-      type: Boolean,
-      default: false,
+      default: Date.now(),
     },
   },
   { timestamps: true, versionKey: false },

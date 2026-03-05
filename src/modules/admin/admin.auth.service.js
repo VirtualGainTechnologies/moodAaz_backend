@@ -130,7 +130,7 @@ exports.sendLoginOtp = async (body) => {
     const updatedCount = await repo.updateById(
       admin._id,
       { login_count: 0 },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!updatedCount) {
       throw new AppError(400, "Failed to update login count");
@@ -254,5 +254,9 @@ exports.logout = async (adminId) => {
   if (!adminId) {
     throw new AppError(400, "Admin id is missing");
   }
-  return await repo.updateById(adminId, { token: "" }, { new: true });
+  return await repo.updateById(
+    adminId,
+    { token: "" },
+    { returnDocument: "after" },
+  );
 };
