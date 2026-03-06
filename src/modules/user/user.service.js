@@ -1,6 +1,7 @@
 const repo = require("./user.repository");
 const AppError = require("../../utils/AppError");
 const jwt = require("jsonwebtoken");
+const otpGenerator = require("otp-generator"); 
 
 // Generate JWT
 const generateJwtToken = (user) => {
@@ -10,8 +11,14 @@ const generateJwtToken = (user) => {
   });
 };
 
-// OTP Generator
-const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+// OTP Generator using otp-generator
+const generateOtp = () =>
+  otpGenerator.generate(6, {
+    digits: true,
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    specialChars: false,
+  });
 
 // REGISTER SEND OTP
 exports.registerSendOtp = async ({ email, phone }) => {
