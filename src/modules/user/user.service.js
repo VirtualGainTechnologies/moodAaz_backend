@@ -1,7 +1,7 @@
 const repo = require("./user.repository");
 const AppError = require("../../utils/AppError");
 const jwt = require("jsonwebtoken");
-const otpGenerator = require("otp-generator"); 
+const otpGenerator = require("otp-generator");
 
 // Generate JWT
 const generateJwtToken = (user) => {
@@ -11,19 +11,19 @@ const generateJwtToken = (user) => {
   });
 };
 
-// OTP Generator using otp-generator
+// OTP Generator
 const generateOtp = () =>
-  otpGenerator.generate(6, {
-    digits: true,
-    lowerCaseAlphabets: false,
-    upperCaseAlphabets: false,
-    specialChars: false,
-  });
+  otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
 
 // REGISTER SEND OTP
 exports.registerSendOtp = async ({ email, phone }) => {
   const existing = await repo.findOne({ email });
   if (existing) throw new AppError(400, "Email already registered");
+
+  // Service-level phone validation
+  if (phone && !/^\d{10}$/.test(phone)) {
+    throw new AppError(400, "Phone number must be exactly 10 digits");
+  }
 
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -34,11 +34,25 @@ exports.registerSendOtp = async ({ email, phone }) => {
 };
 
 // REGISTER VERIFY OTP
-exports.registerVerifyOtp = async ({ otpId, otp, first_name, last_name, password, phone, address }) => {
+exports.registerVerifyOtp = async ({ otpId, otp, email, first_name, last_name, password, phone, address }) => {
   const user = await repo.findById(otpId);
   if (!user || !user.otp || user.otp !== otp || !user.otpExpiresAt || user.otpExpiresAt < new Date())
     throw new AppError(400, "Invalid or expired OTP");
 
+  // Email match check
+  if (email && user.email !== email) {
+    throw new AppError(400, "Email does not match OTP record");
+  }
+  // Phone match check
+  if (user.phone && phone && user.phone !== phone) {
+    throw new AppError(400, "Phone number is not matching");
+  }
+  // phone validation
+  if (phone && !/^\d{10}$/.test(phone)) {
+    throw new AppError(400, "Phone number must be exactly 10 digits");
+  }
+
+  // Update user info
   user.first_name = first_name;
   user.last_name = last_name;
   user.password = password;

@@ -29,7 +29,12 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      validate: [validator.isMobilePhone, "Please provide a valid phone number"],
+      validate: {
+        validator: function (v) {
+          return !v || /^\d{10}$/.test(v); 
+        },
+        message: "Phone number must be exactly 10 digits",
+      },
     },
     address: {
       street: { type: String, trim: true },
@@ -65,7 +70,7 @@ userSchema.methods.generateAuthToken = function () {
   if (!process.env.JWT_ACCESS_SECRET) {
     throw new Error("JWT_ACCESS_SECRET is missing in environment variables!");
   }
-  
+
   return jwt.sign(
     { _id: this._id, email: this.email },
     process.env.JWT_ACCESS_SECRET,

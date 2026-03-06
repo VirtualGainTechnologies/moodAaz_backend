@@ -11,8 +11,8 @@ exports.registerOtpSendValidator = [
 
   body("phone")
     .optional()
-    .isMobilePhone()
-    .withMessage("Please provide a valid phone number"),
+    .isNumeric().withMessage("Phone number must contain only numbers")
+    .isLength({ min: 10, max: 10 }).withMessage("Phone number must be exactly 10 digits"),
 ];
 
 //REGISTER VERIFY OTP
@@ -43,8 +43,12 @@ exports.registerOtpVerifyValidator = [
     .withMessage("Password is required")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters"),
+  // phone validation
+  body("phone")
+    .optional()
+    .isNumeric().withMessage("Phone number must contain only numbers")
+    .isLength({ min: 10, max: 10 }).withMessage("Phone number must be exactly 10 digits"),
 ];
-
 
 // LOGIN SEND OTP
 exports.loginOtpSendValidator = [
