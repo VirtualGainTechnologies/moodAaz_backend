@@ -43,8 +43,6 @@ const userSchema = new mongoose.Schema(
       enum: ["ACTIVE", "BLOCKED"],
       default: "ACTIVE",
     },
-
-    // OTP Fields
     otp: { type: String, trim: true },
     otpExpiresAt: { type: Date },
   },
@@ -67,7 +65,7 @@ userSchema.methods.generateAuthToken = function () {
   if (!process.env.JWT_ACCESS_SECRET) {
     throw new Error("JWT_ACCESS_SECRET is missing in environment variables!");
   }
-
+  
   return jwt.sign(
     { _id: this._id, email: this.email },
     process.env.JWT_ACCESS_SECRET,
