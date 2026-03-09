@@ -1,0 +1,103 @@
+const validator = require("validator");
+
+const AppError = require("../../utils/app-error");
+const {
+  sendMobileOtp,
+  sendEmailOtp,
+  verifyOtp,
+} = require("../otp/otp.service");
+const { parsePhone } = require("../../utils/phone");
+const repo = require("./user.repository");
+const { generateJwtToken } = require("../../utils/jwt");
+
+const parseIdentifier = (identifier) => {
+  const value = identifier.trim().toLowerCase();
+  const isEmail = validator.isEmail(value);
+  const isMobilePhone = validator.isMobilePhone(value, "any");
+  if (!isEmail && !isMobilePhone) {
+    throw new Error("Identifier must be a valid email or phone number");
+  }
+  return {
+    type: isEmail ? "EMAIL" : "PHONE",
+    value,
+  };
+};
+
+exports.initiateAuthentication = async (payload) => {
+  const { identifier, country } = payload;
+  const parsed = parseIdentifier(identifier);
+  const { type, value } = parsed;
+
+  const isExist = await repo.findOne({ [type.toLowerCase()]: value }, "_id", {
+    lean: true,
+  });
+  const authType = !isExist ? "REGISTER" : "LOGIN";
+
+  let result;
+  if (type == "EMAIL") {
+    result = await sendEmailOtp(value, authType.toLowerCase());
+  } else {
+    const { countryCode, input } = parsePhone(identifier, country);
+    result = await sendMobileOtp(countryCode, input);
+  }
+
+  if (!result) {
+    throw new AppError(400, "Failed to send otp");
+  }
+
+  return {
+    ...result,
+    identifier,
+    authType,
+  };
+};
+
+exports.verifyAuthentication = async (payload) => {
+  const { identifier, otp, otpId, country, authType } = payload;
+  const parsed = parseIdentifier(identifier);
+  const { type, value } = parsed;
+
+  const verified = await verifyOtp(otpId, otp);
+  if (!verified) {
+    throw new AppError(400, "Failed to verify otp");
+  }
+
+  const token = generateJwtToken({
+    [type.toLowerCase()]: value,
+    type: "USER",
+  });
+  if (token.error) {
+    throw new AppError(400, token.message);
+  }
+
+  let userInfo = {};
+  if (type == "PHONE") {
+    const { countryCode, input } = parsePhone(identifier, country);
+    userInfo["phone_code"] = countryCode;
+    userInfo["phone"] = input;
+    userInfo["phone_verified"] = true;
+  } else {
+    userInfo["email"] = value;
+    userInfo["email_verified"] = true;
+  }
+
+  const result = await repo.updateOne(
+    userInfo,
+    {
+      ...userInfo,
+      token: token.data,
+      last_login_date: Date.now(),
+    },
+    { returnDocument: "after", upsert: true },
+  );
+  if (!result) {
+    throw new AppError(400, "Failed to update token");
+  }
+
+  return {
+    token: result.token,
+    role: result.role,
+    [type.toLowerCase()]: value,
+    authType,
+  };
+};

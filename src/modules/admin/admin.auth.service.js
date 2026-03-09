@@ -139,8 +139,8 @@ exports.sendLoginOtp = async (body) => {
 
   // send otp
   const result = await sendEmailOtp(email, "login");
-  if (result.error) {
-    throw new AppError(400, result.message);
+  if (result) {
+    throw new AppError(400, "Failed to send otp");
   }
   return result;
 };
@@ -149,8 +149,8 @@ exports.verifyLoginOtp = async (body) => {
   const { otpId, otp, email } = body;
 
   const verified = await verifyOtp(otpId, otp);
-  if (verified.error) {
-    throw new AppError(400, verified.message);
+  if (!verified) {
+    throw new AppError(400, "Failed to verify otp");
   }
 
   const admin = await repo.findOne({ email });

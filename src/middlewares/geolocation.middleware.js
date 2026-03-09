@@ -32,8 +32,8 @@ module.exports = (req, res, next) => {
   const geo = geoip.lookup(req.ipAddress);
 
   if (!geo) {
-    req.country = "Unknown";
-    req.location = "Unknown";
+    req.country = "";
+    req.location = "";
     req.locationDetails = {
       country: "",
       region: "",
