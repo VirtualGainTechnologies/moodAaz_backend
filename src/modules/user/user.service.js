@@ -81,17 +81,28 @@ exports.verifyAuthentication = async (payload) => {
     userInfo["email_verified"] = true;
   }
 
-  const result = await repo.updateOne(
-    userInfo,
-    {
-      ...userInfo,
-      token: token.data,
-      last_login_date: Date.now(),
-    },
-    { returnDocument: "after", upsert: true },
-  );
+  const result =
+    authType == "LOGIN"
+      ? await repo.updateOne(
+          userInfo,
+          {
+            token: token.data,
+            last_login_date: Date.now(),
+          },
+          { returnDocument: "after" },
+        )
+      : await repo.create({
+          ...userInfo,
+          token: token.data,
+          last_login_date: Date.now(),
+        });
+
   if (!result) {
-    throw new AppError(400, "Failed to update token");
+    const message =
+      authType === "LOGIN"
+        ? "Login failed. Please check your credentials."
+        : "Registration failed. Please try again.";
+    throw new AppError(400, message);
   }
 
   return {
