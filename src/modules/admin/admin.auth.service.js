@@ -139,7 +139,7 @@ exports.sendLoginOtp = async (body) => {
 
   // send otp
   const result = await sendEmailOtp(email, "login");
-  if (result) {
+  if (!result) {
     throw new AppError(400, "Failed to send otp");
   }
   return result;

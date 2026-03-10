@@ -36,7 +36,7 @@ if (NODE_ENV === "development") {
 }
 app.use(
   cors({
-    origin: [CLIENT_BASE_URL1, CLIENT_BASE_URL2].filter(Boolean),
+    origin: [CLIENT_BASE_URL1, CLIENT_BASE_URL2],
     credentials: true,
   }),
 );

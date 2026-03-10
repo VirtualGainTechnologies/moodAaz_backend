@@ -21,28 +21,28 @@ const {
 router.post(
   "/create/:productId",
   authenticate,
-  authorize("SUPER-ADMIN"),
+  authorize("USER"),
   createReviewValidator,
   catchAsyncWithSession("createReview api", createReview),
 );
 router.get(
   "/:productId",
   authenticate,
-  authorize("SUPER-ADMIN"),
+  authorize("USER"),
   getProductReviewsValidator,
   catchAsync("getProductReviews api", getProductReviews),
 );
 router.put(
   "/:reviewId",
   authenticate,
-  authorize("SUPER-ADMIN"),
+  authorize("USER"),
   updateReviewValidator,
   catchAsyncWithSession("updateReview api", updateReview),
 );
 router.delete(
   "/:reviewId",
   authenticate,
-  authorize("SUPER-ADMIN"),
+  authorize("USER"),
   deleteReviewValidator,
   catchAsyncWithSession("deleteReview api", deleteReview),
 );
