@@ -22,11 +22,6 @@ exports.createProductValidator = [
     .withMessage("Product description is required")
     .isLength({ min: 20 })
     .withMessage("Description must be at least 20 characters"),
-  body("shortDescription")
-    .optional()
-    .trim()
-    .isLength({ max: 280 })
-    .withMessage("Short description cannot exceed 280 characters"),
   body("categoryId")
     .notEmpty()
     .withMessage("Category ID is required")

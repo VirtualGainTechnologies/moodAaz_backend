@@ -21,82 +21,102 @@ const productSchema = new mongoose.Schema(
       required: [true, "Product description is required"],
       minlength: [20, "Description should be at least 20 characters"],
     },
-    short_description: {
+    article_number: {
       type: String,
-      maxlength: [280, "Short description max 280 characters"],
+      required: [true, "Article number is required"],
     },
     category_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "category",
       required: [true, "Category ID is required"],
     },
-    category_path: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "category",
-        required: [true, "At least one category required"],
-      },
-    ],
     thumbnail: {
       type: String,
       required: [true, "Product thumbnail is required"],
     },
-    // attributes
-    attributes: {
-      brand: {
-        type: String,
-        default: "MOODAAZ",
-      },
-      manufacturer: String,
-      country_of_origin: String,
-      warranty: String,
-      care_instructions: String,
+    brand: {
+      type: String,
+      default: "MOODAAZ",
     },
+    country_of_origin: {
+      type: String,
+      default: "INDIA",
+    },
+    manufacturer: String,
+    warranty: String,
+    care_instructions: String,
+    attributes: {
+      type: Map,
+      of: String,
+      default: new Map(),
+    },
+
     // variants
     has_variants: { type: Boolean, default: false },
+    product_type: {
+      type: String,
+      enum: ["CLOTHING", "BAGS", "JEWELLERY"],
+    },
+    image_attribute: {
+      type: String,
+      default: "color",
+    },
+    variants_images: [
+      {
+        value: String,
+        images: [String],
+        _id: false,
+      },
+    ],
     variants: {
       type: [
-        new mongoose.Schema(
-          {
-            sku: {
-              type: String,
-              required: [true, "SKU is required"],
-              uppercase: true,
-              trim: true,
-            },
-            price: {
-              type: Number,
-              required: [true, "Price is required"],
-              min: 0,
-            },
-            sale_price: {
-              type: Number,
-              min: 0,
-              validate: {
-                validator: function (v) {
-                  return !v || v < this.price;
-                },
-                message: "Sale price must be lower than regular price",
+        new mongoose.Schema({
+          sku: {
+            type: String,
+            required: true,
+            uppercase: true,
+            trim: true,
+            unique: true,
+          },
+          attributes: {
+            type: Map,
+            of: String,
+            default: new Map(),
+            // { color: "Black", size: "M" }
+          },
+          price: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+          sale_price: {
+            type: Number,
+            min: 0,
+            validate: {
+              validator: function (v) {
+                return !v || v < this.price;
               },
-            },
-            stock: {
-              type: Number,
-              required: [true, "Stock is required"],
-              min: [0, "Stock cannot be negative"],
-              default: 0,
-            },
-            attributes: {
-              type: Map,
-              of: String, // { color: "Black", size: "M", material: "Cotton" }
-              default: {},
-            },
-            images: {
-              type: [String],
-              default: [],
+              message: "Sale price must be lower than regular price",
             },
           },
-          { _id: true },
-        ),
+          stock: {
+            type: Number,
+            default: 0,
+            min: 0,
+          },
+          weight_in_grams: Number,
+          dimensions: {
+            length: Number,
+            width: Number,
+            height: Number,
+            unit: {
+              type: String,
+              enum: ["cm", "inch"],
+              default: "cm",
+            },
+          },
+          _id: false,
+        }),
       ],
       validate: [
         {
@@ -148,23 +168,25 @@ const productSchema = new mongoose.Schema(
         default: 0,
       },
     },
-
-    // physical attributes
-    weight_in_grams: Number,
-    dimensions: {
-      length: Number,
-      width: Number,
-      height: Number,
-      unit: {
+    // seo
+    seo: {
+      meta_title: {
         type: String,
-        enum: ["cm", "inch"],
-        default: "cm",
+        default: "",
+      },
+      meta_description: {
+        type: String,
+        default: "",
+      },
+      meta_keywords: {
+        type: [String],
+        default: [],
       },
     },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
-      default: "draft",
+      enum: ["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"],
+      default: "ACTIVE",
     },
     date: {
       type: Number,
@@ -191,17 +213,14 @@ productSchema.index(
   {
     name: "text",
     description: "text",
-    short_description: "text",
   },
   {
     default_language: "english",
     weights: {
       name: 10, // higher priority in search ranking
       description: 5,
-      short_description: 3,
     },
   },
 );
-productSchema.index({ "variants.sku": 1 }, { unique: true });
 
 module.exports = mongoose.model("product", productSchema);

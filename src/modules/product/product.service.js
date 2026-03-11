@@ -77,89 +77,135 @@ exports.createProduct = async (payload, files) => {
   const {
     name,
     description,
-    shortDescription,
     categoryId,
-    categoryPath,
+    careInstructions,
+    warranty,
+    countryOfOrigin,
+    manufacturer,
+    brand,
     attributes,
-    variants = [],
-    tags = [],
-    isFeatured = false,
-    isNewArrival = false,
-    isBestSeller = false,
-    isSignature = false,
-    hasVariants = false,
-    weightInGrams,
-    dimensions,
-    status = "draft",
+    hasVariants,
+    variants,
+    tags,
+    productType,
+    imageAttribute = "color",
+    seo,
+    status = "ACTIVE",
   } = payload;
 
-  // check slug is unique
+  // slug
   const slug = slugify(name, { lower: true, strict: true });
   const productExists = await repo.findOne({ slug }, "_id", { lean: true });
   if (productExists) {
     throw new AppError(400, "Product already exists");
   }
 
-  // upload images - name:thumbnail && variant_images[1,2,3...]
-  const map = new Map();
+  // article number
+  const articleNumber = `MDZ-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+
+  // file parsing
   let thumbnail = null;
-  files.forEach(async (file) => {
-    const match = file.fieldname.match(/^variant_images\[(\d+)\]$/);
-    if (match) {
-      const index = Number(match[1]);
-      (map.get(index) ?? map.set(index, []).get(index)).push(file);
-    } else if (file.fieldname == "thumbnail") {
+  const images = new Map();
+  for (const file of files) {
+    if (file.fieldname === "thumbnail") {
       thumbnail = file;
-    } else {
-      throw new AppError(400, "Invalid image field");
+      continue;
     }
-  });
-  const { url } = await uploadPublicFile(thumbnail, "product-thumbnail", 5);
-  const finalVariants = await Promise.all(
-    JSON.parse(variants).map(async (variant, index) => {
-      const files = map.get(index + 1) || [];
-      const images = await uploadMultiplePublicFiles(
+    const match = file.fieldname.match(/^variantImages\[(.+?):(.+?)\]$/);
+    if (!match) {
+      throw new AppError(400, `Invalid image field: ${file.fieldname}`);
+    }
+    const attribute = match[1].toLowerCase();
+    const value = match[2].toLowerCase();
+    const key = `${attribute}:${value}`;
+    (images.get(key) ?? images.set(key, []).get(key)).push(file);
+  }
+  if (!thumbnail) {
+    throw new AppError(400, "Thumbnail image is required");
+  }
+
+  // upload thumbnail
+  const { url: thumbnailUrl } = await uploadPublicFile(
+    thumbnail,
+    "product-thumbnail",
+    5,
+  );
+
+  // upload variants images
+  const variantsImages = await Promise.all(
+    Array.from(images.entries()).map(async ([key, files]) => {
+      const [, value] = key.split(":");
+      const uploaded = await uploadMultiplePublicFiles(
         files,
         "product-gallery",
         5,
       );
       return {
-        ...variant,
-        sku: `MOODAAZ-${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
-        images: images.map((x) => x.url),
+        value,
+        images: uploaded.map((x) => x.url),
       };
     }),
   );
 
+  // variants
+  const parsedVariants = JSON.parse(variants || "[]");
+  if (!parsedVariants.length) {
+    throw new AppError(400, "At least one variant is required");
+  }
+
+  const finalVariants = parsedVariants.map((variant, index) => {
+    if (!variant.attributes) {
+      throw new AppError(400, `Variant attributes missing at index ${index}`);
+    }
+    const attributeValue = variant.attributes[imageAttribute];
+    if (!attributeValue) {
+      throw new AppError(
+        400,
+        `Variant must include "${imageAttribute}" attribute`,
+      );
+    }
+    const attributeValues = Object.values(variant.attributes).map((v) =>
+      String(v).replace(/\s+/g, "").toUpperCase(),
+    );
+    return {
+      ...variant,
+      sku: `${articleNumber}-${attributeValues.join("-")}`,
+      attributes: new Map(Object.entries(variant.attributes)),
+    };
+  });
+
   // product data
-  productData = {
+  const productData = {
     name: name.trim(),
-    slug: slugify(name, { lower: true, strict: true }),
+    slug,
     description,
-    short_description: shortDescription?.trim() || undefined,
+    care_instructions: careInstructions,
+    warranty,
+    country_of_origin: countryOfOrigin,
+    manufacturer,
+    brand,
+    article_number: articleNumber,
     category_id: new mongoose.Types.ObjectId(categoryId),
-    category_path: JSON.parse(categoryPath),
-    thumbnail: url,
-    attributes: JSON.parse(attributes),
-    has_variants: !!hasVariants,
+    thumbnail: thumbnailUrl,
+    attributes: attributes ? JSON.parse(attributes) : {},
+    has_variants: Boolean(hasVariants),
+    product_type: productType,
+    image_attribute: imageAttribute,
+    variants_images: variantsImages,
     variants: finalVariants,
-    tags: JSON.parse(tags)
+    tags: JSON.parse(tags || "[]")
       .map((t) => t.toLowerCase().trim())
       .filter(Boolean),
-    is_featured: !!isFeatured,
-    is_new_arrival: !!isNewArrival,
-    is_best_seller: !!isBestSeller,
-    is_signature: !!isSignature,
-    weight_in_grams: weightInGrams ? Number(weightInGrams) : undefined,
-    dimensions: JSON.parse(dimensions),
+    seo: seo ? JSON.parse(seo) : {},
     status,
   };
-  console.log("productData--", productData);
-  const newProduct = await repo.create(productData);
-  if (!newProduct) {
+
+  // create product
+  const product = await repo.create(productData);
+  if (!product) {
     throw new AppError(400, "Failed to create product");
   }
-  return newProduct;
+  return product;
 };
 
 exports.getAllProducts = async (query) => {
