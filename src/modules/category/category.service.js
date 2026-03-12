@@ -48,6 +48,12 @@ exports.getAllCategories = async () => {
   return buildTree(categories);
 };
 
+exports.getSubCategories = async (categoryId) => {
+  return await repo.findMany({ parent: categoryId }, "_id name slug", {
+    lean: true,
+  });
+};
+
 exports.updateCategory = async (id, name) => {
   const slug = slugify(name, { lower: true });
   return repo.updateById(id, { name, slug }, { returnDocument: "after" });

@@ -5,13 +5,14 @@ const { catchAsync } = require("../../utils/catch-async");
 const {
   createCategory,
   getAllCategories,
+  getSubCategories,
   updateCategory,
   deleteCategory,
 } = require("./category.controller");
 const {
   createCategoryValidator,
   updateCategoryValidator,
-  deleteCategoryValidator,
+  categoryIdParamValidator,
 } = require("./category.validator");
 
 router.post(
@@ -29,6 +30,14 @@ router.get(
   catchAsync("getAllCategories api", getAllCategories),
 );
 
+router.get(
+  "/:id/subcategories",
+  authenticate,
+  authorize("SUPER-ADMIN"),
+  categoryIdParamValidator,
+  catchAsync("getSubCategories api", getSubCategories),
+);
+
 router.put(
   "/update/:id",
   authenticate,
@@ -41,7 +50,7 @@ router.delete(
   "/delete/:id",
   authenticate,
   authorize("SUPER-ADMIN"),
-  deleteCategoryValidator,
+  categoryIdParamValidator,
   catchAsync("deleteCategory api", deleteCategory),
 );
 

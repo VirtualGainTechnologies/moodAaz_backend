@@ -15,14 +15,26 @@ exports.createCategory = async (req, res) => {
 };
 
 exports.getAllCategories = async (req, res) => {
-  const tree = await service.getAllCategories();
-  if (!tree) {
+  const categories = await service.getAllCategories();
+  if (!categories) {
     throw new AppError(400, "Failed to fetch categories");
   }
   res.status(200).json({
     message: "Category fetched successfully",
     error: false,
-    data: tree,
+    data: categories,
+  });
+};
+
+exports.getSubCategories = async (req, res) => {
+  const categories = await service.getSubCategories(req.params.id);
+  if (!categories) {
+    throw new AppError(500, "Failed to retrieve subcategories");
+  }
+  res.status(200).json({
+    message: "Subcategories retrieved successfully",
+    error: false,
+    data: categories,
   });
 };
 

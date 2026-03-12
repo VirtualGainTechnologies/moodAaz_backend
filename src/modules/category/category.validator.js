@@ -17,7 +17,7 @@ exports.updateCategoryValidator = [
   body("name").notEmpty().withMessage("Category name is required"),
 ];
 
-exports.deleteCategoryValidator = [
+exports.categoryIdParamValidator = [
   param("id")
     .notEmpty()
     .withMessage("Category id is required")
