@@ -25,94 +25,91 @@ exports.createProductValidator = [
   body("categoryId")
     .notEmpty()
     .withMessage("Category ID is required")
-    .custom((value) => mongoose.Types.ObjectId.isValid(value))
-    .withMessage("Invalid Category ID"),
-  body("categoryPath")
+    .isMongoId()
+    .withMessage("Invalid category ID"),
+  body("productType")
     .notEmpty()
-    .withMessage("Category path is required")
-    .custom((value) => {
-      const result = parsed("Category path", value);
-      if (!Array.isArray(result) || result.length === 0) {
-        throw new Error("Category path must contain at least one category");
-      }
-      result.forEach((id) => {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-          throw new Error("Invalid category id inside categoryPath");
-        }
-      });
-      return true;
-    }),
+    .withMessage("Product type is required")
+    .isIn(["CLOTHING", "BAGS", "JEWELLERY"])
+    .withMessage("Invalid product type"),
+  body("brand")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Brand cannot exceed 100 characters"),
+  body("manufacturer")
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage("Manufacturer cannot exceed 200 characters"),
+  body("countryOfOrigin")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Country of origin cannot exceed 100 characters"),
+  body("warranty")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Warranty cannot exceed 100 characters"),
+  body("careInstructions")
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Care instructions too long"),
   body("attributes")
     .optional()
     .custom((value) => {
-      return parsed("Attributes", value);
+      parsed("Attributes", value);
+      return true;
     }),
   body("variants")
     .notEmpty()
     .withMessage("Variants are required")
     .custom((value) => {
-      const result = parsed("Variants", value);
-      if (!Array.isArray(result) || result.length === 0) {
+      const variants = parsed("Variants", value);
+      if (!Array.isArray(variants) || variants.length === 0) {
         throw new Error("At least one variant is required");
       }
-      result.forEach((variant, index) => {
-        if (!variant.price || Number(variant.price) < 0) {
-          throw new Error(`Variant ${index + 1} must have valid price`);
+      variants.forEach((variant, index) => {
+        if (!variant.price) {
+          throw new Error(`Variant price missing at index ${index}`);
         }
-        if (!variant.stock || Number(variant.stock) < 0) {
-          throw new Error(`Variant ${index + 1} must have valid stock`);
+        if (variant.sale_price && variant.sale_price >= variant.price) {
+          throw new Error(
+            `Sale price must be less than price at variant index ${index}`,
+          );
+        }
+        if (!variant.attributes || typeof variant.attributes !== "object") {
+          throw new Error(`Variant attributes missing at index ${index}`);
         }
       });
       return true;
     }),
+  body("imageAttribute")
+    .optional()
+    .trim()
+    .isLength({ min: 1 })
+    .withMessage("Image attribute must be valid"),
   body("tags")
     .optional()
     .custom((value) => {
-      const result = parsed("tags", value);
-      if (!Array.isArray(result)) {
+      const tags = parsed("Tags", value);
+      if (!Array.isArray(tags)) {
         throw new Error("Tags must be an array");
       }
       return true;
     }),
-  body("weightInGrams")
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage("Weight must be a positive number"),
-  body("dimensions")
+  body("seo")
     .optional()
     .custom((value) => {
-      const result = parsed("dimensions", value);
-      if (result.length < 0 || result.width < 0 || result.height < 0) {
-        throw new Error("Dimensions must be positive numbers");
-      }
+      parsed("Tags", value);
       return true;
     }),
   body("status")
     .optional()
-    .isIn(["draft", "published", "archived"])
-    .withMessage("Invalid product status"),
-  body().custom((_, { req }) => {
-    if (!req.files || req.files.length === 0) {
-      throw new Error("Product images are required");
-    }
-    const thumbnail = req.files.find((file) => file.fieldname === "thumbnail");
-    if (!thumbnail) {
-      throw new Error("Product thumbnail is required");
-    }
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    req.files.forEach((file) => {
-      if (!allowedTypes.includes(file.mimetype)) {
-        throw new Error(
-          `Invalid file type for ${file.fieldname}. Only jpg, png, webp allowed`,
-        );
-      }
-      const match = file.fieldname.match(/^variant_images\[(\d+)\]$/);
-      if (file.fieldname !== "thumbnail" && !match) {
-        throw new Error(`Invalid image field name: ${file.fieldname}`);
-      }
-    });
-    return true;
-  }),
+    .isIn(["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"])
+    .withMessage("Invalid status"),
 ];
 
 exports.getProductDetailsValidator = [

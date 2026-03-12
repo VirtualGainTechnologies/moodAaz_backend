@@ -8,6 +8,7 @@ const {
   getSubCategories,
   updateCategory,
   deleteCategory,
+  getMainCategories,
 } = require("./category.controller");
 const {
   createCategoryValidator,
@@ -28,6 +29,13 @@ router.get(
   authenticate,
   authorize("SUPER-ADMIN"),
   catchAsync("getAllCategories api", getAllCategories),
+);
+
+router.get(
+  "/main",
+  authenticate,
+  authorize("SUPER-ADMIN"),
+  catchAsync("getMainCategories api", getMainCategories),
 );
 
 router.get(

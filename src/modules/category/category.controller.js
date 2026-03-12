@@ -27,12 +27,25 @@ exports.getAllCategories = async (req, res) => {
 };
 
 exports.getSubCategories = async (req, res) => {
-  const categories = await service.getSubCategories(req.params.id);
+  const { id } = req.params;
+  const categories = await service.getCategoriesByParent(id);
   if (!categories) {
-    throw new AppError(500, "Failed to retrieve subcategories");
+    throw new AppError(400, "Failed to retrieve subcategories");
   }
   res.status(200).json({
     message: "Subcategories retrieved successfully",
+    error: false,
+    data: categories,
+  });
+};
+
+exports.getMainCategories = async (req, res) => {
+  const categories = await service.getCategoriesByParent(null);
+  if (!categories) {
+    throw new AppError(400, "Failed to retrieve main categories");
+  }
+  res.status(200).json({
+    message: "Main categories retrieved successfully",
     error: false,
     data: categories,
   });

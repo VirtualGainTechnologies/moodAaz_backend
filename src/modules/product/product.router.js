@@ -20,7 +20,7 @@ router.post(
   // authenticate,
   // authorize("SUPER-ADMIN"),
   multer.any(),
-  // createProductValidator,
+  createProductValidator,
   catchAsync("createProduct api", createProduct),
 );
 router.get(

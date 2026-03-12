@@ -1,5 +1,7 @@
 const slugify = require("slugify");
+
 const repo = require("./category.repository");
+const productRepo = require("../product/product.repository");
 const AppError = require("../../utils/app-error");
 
 const buildTree = (categories, parentId = null) => {
@@ -13,11 +15,10 @@ const buildTree = (categories, parentId = null) => {
 };
 
 exports.createCategory = async (payload) => {
-  const { name, parent } = payload;
+  const { name, parent = null } = payload;
   const slug = slugify(name, { lower: true });
-  const exists = await repo.findOne({ slug }, "_id", { lean: true });
-  if (exists) {
-    throw new Error("Category already exists");
+  if (await repo.exists({ slug })) {
+    throw new AppError(409, "Category already exists");
   }
 
   let level = 0;
@@ -48,33 +49,40 @@ exports.getAllCategories = async () => {
   return buildTree(categories);
 };
 
-exports.getSubCategories = async (categoryId) => {
-  return await repo.findMany({ parent: categoryId }, "_id name slug", {
-    lean: true,
-  });
+exports.getCategoriesByParent = async (parentId) => {
+  return repo.findMany({ parent: parentId }, "_id name slug", { lean: true });
 };
 
 exports.updateCategory = async (id, name) => {
+  const category = await repo.findById(id, "_id", { lean: true });
+  if (!category) {
+    throw new AppError(404, "Category not found");
+  }
   const slug = slugify(name, { lower: true });
+  if (await repo.exists({ slug })) {
+    throw new AppError(400, "Category name already exists");
+  }
+
   return repo.updateById(id, { name, slug }, { returnDocument: "after" });
 };
 
 exports.deleteCategory = async (id) => {
   const category = await repo.findById(id, "_id", { lean: true });
   if (!category) {
-    throw new AppError(400, "Category not found");
+    throw new AppError(404, "Category not found");
   }
 
-  const categoryIds = [];
-  const collectChildren = async (parentId) => {
-    categoryIds.push(parentId);
-    const children = await repo.findMany({ parent: parentId }, "_id", {
-      lean: true,
-    });
-    for (const child of children) {
-      await collectChildren(child._id);
-    }
-  };
-  await collectChildren(id);
-  return repo.deleteMany({ _id: { $in: categoryIds } });
+  const [hasSubcategories, hasProducts] = await Promise.all([
+    repo.exists({ parent: id }),
+    productRepo.exists({ category_id: id }),
+  ]);
+  if (hasSubcategories) {
+    throw new AppError(400, "Cannot delete category with subcategories");
+  }
+  if (hasProducts) {
+    throw new AppError(400, "Cannot delete category used by products");
+  }
+
+  await repo.deleteById(id);
+  return true;
 };

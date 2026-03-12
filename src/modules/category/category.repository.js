@@ -15,7 +15,11 @@ exports.findById = (id, projection = null, options = {}) => {
 };
 
 exports.findMany = (filter = {}, projection = null, options = {}) => {
-  return Category.find(filter, projection, (options = {}));
+  return Category.find(filter, projection, options);
+};
+
+exports.exists = (filter = {}) => {
+  return Category.exists(filter);
 };
 
 // update

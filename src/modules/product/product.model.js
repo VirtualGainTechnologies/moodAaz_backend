@@ -52,7 +52,6 @@ const productSchema = new mongoose.Schema(
     },
 
     // variants
-    has_variants: { type: Boolean, default: false },
     product_type: {
       type: String,
       enum: ["CLOTHING", "BAGS", "JEWELLERY"],

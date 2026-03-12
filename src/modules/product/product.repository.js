@@ -18,6 +18,10 @@ exports.findMany = (filter = {}, projection = null, options = {}) => {
   return Product.find(filter, projection, (options = {}));
 };
 
+exports.exists = (filter = {}) => {
+  return Product.exists(filter);
+};
+
 exports.aggregate = (pipeline = [], options = {}) => {
   return Product.aggregate(pipeline).option(options);
 };
