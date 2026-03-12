@@ -27,7 +27,8 @@ exports.getAllProducts = async (req, res) => {
 };
 
 exports.getProductDetails = async (req, res) => {
-  const product = await service.getProductDetails(req.params.id);
+  const { id } = req.params;
+  const product = await service.getProductDetails(id);
   if (!product) {
     throw new AppError(400, "Failed to fetch product details");
   }

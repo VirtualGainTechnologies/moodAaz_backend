@@ -17,12 +17,13 @@ const {
 
 router.post(
   "/create",
-  // authenticate,
-  // authorize("SUPER-ADMIN"),
+  authenticate,
+  authorize("SUPER-ADMIN"),
   multer.any(),
   createProductValidator,
   catchAsync("createProduct api", createProduct),
 );
+
 router.get(
   "/:id",
   authenticate,
@@ -30,6 +31,7 @@ router.get(
   getProductDetailsValidator,
   catchAsync("getProductDetails api", getProductDetails),
 );
+
 router.get(
   "/",
   authenticate,
@@ -37,6 +39,7 @@ router.get(
   getAllProductsValidator,
   catchAsync("getAllProducts api", getAllProducts),
 );
+
 router.put(
   "/:id",
   authenticate,

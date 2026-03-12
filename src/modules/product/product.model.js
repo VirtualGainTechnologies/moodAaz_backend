@@ -126,7 +126,11 @@ const productSchema = new mongoose.Schema(
         },
       ],
     },
-
+    total_stock: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     tags: [
       {
         type: String,
@@ -195,16 +199,20 @@ const productSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
   },
 );
 
-// virtuals
-productSchema.virtual("in_stock").get(function () {
-  return this.has_variants
-    ? this.variants.some((v) => v.stock > 0)
-    : this.variants[0].stock > 0;
+// calculate & save total stock
+productSchema.pre("save", function () {
+  if (!this.variants || this.variants.length === 0) {
+    this.total_stock = 0;
+    return;
+  }
+  const totalStock = this.variants.reduce(
+    (sum, variant) => sum + (variant.stock || 0),
+    0,
+  );
+  this.total_stock = totalStock;
 });
 
 // text search index

@@ -139,16 +139,8 @@ exports.getAllProductsValidator = [
     .withMessage("Search must be between 1 and 100 characters"),
   query("status")
     .optional()
-    .isIn(["active", "inactive", "draft"])
+    .isIn(["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"])
     .withMessage("Invalid status value"),
-  query("categoryPath")
-    .optional()
-    .isArray()
-    .withMessage("categoryPath must be an array of category IDs"),
-  query("categoryPath.*")
-    .optional()
-    .isMongoId()
-    .withMessage("Invalid category ID"),
   query("tags").optional().isArray().withMessage("Tags must be an array"),
   query("tags.*")
     .optional()

@@ -12,7 +12,6 @@ const mongoose = require("mongoose");
 const buildMatchStage = (filters = {}) => {
   const {
     status,
-    categoryPath,
     tags,
     isFeatured,
     isNewArrival,
@@ -25,9 +24,6 @@ const buildMatchStage = (filters = {}) => {
 
   const match = {
     ...(status && { status }),
-    ...(categoryPath && {
-      category_path: { $in: categoryPath },
-    }),
     ...(Array.isArray(tags) &&
       tags.length > 0 && {
         tags: { $in: tags },
@@ -36,7 +32,7 @@ const buildMatchStage = (filters = {}) => {
     ...(isNewArrival && { is_new_arrival: true }),
     ...(isSignature && { is_signature: true }),
     ...((minPrice || maxPrice) && {
-      price: {
+      "variants.price": {
         ...(minPrice && { $gte: Number(minPrice) }),
         ...(maxPrice && { $lte: Number(maxPrice) }),
       },
@@ -45,31 +41,29 @@ const buildMatchStage = (filters = {}) => {
       $text: { $search: search.trim() },
     }),
   };
-
   if (inStock) {
-    match.$or = [
-      { has_variants: false, stock: { $gt: 0 } },
-      { has_variants: true, "variants.stock": { $gt: 0 } },
-    ];
+    match["total_stock"] = { $gt: 0 };
   }
-
-  return Object.keys(match).length ? match : null;
+  return Object.keys(match).length ? match : {};
 };
 
 const buildSortStage = (sort, hasSearch) => {
   const sortStage = {};
+
   if (hasSearch) {
     sortStage.score = { $meta: "textScore" };
   }
+
   if (sort) {
     const order = sort.startsWith("-") ? -1 : 1;
     const field = sort.replace("-", "");
     sortStage[field] = order;
   }
-  // default fallback
+
   if (Object.keys(sortStage).length === 0) {
     sortStage.createdAt = -1;
   }
+
   return sortStage;
 };
 
@@ -207,24 +201,11 @@ exports.createProduct = async (payload, files) => {
 };
 
 exports.getAllProducts = async (query) => {
-  const {
-    page = 1,
-    limit = 10,
-    sort, // e.g., "-updatedAt"
-    search,
-  } = query;
-
+  const { page = 1, limit = 10, sort, search } = query;
   const match = buildMatchStage(query);
   const sortStage = buildSortStage(sort, !!search);
   const pipeline = [
-    { $match: match || {} },
-    ...(search
-      ? [
-          {
-            $match: { $text: { $search: search } },
-          },
-        ]
-      : []),
+    { $match: match },
     { $sort: sortStage },
     {
       $facet: {
@@ -234,29 +215,29 @@ exports.getAllProducts = async (query) => {
           { $limit: Number(limit) },
           {
             $addFields: {
-              total_stock: {
-                $cond: ["$has_variants", { $sum: "$variants.stock" }, "$stock"],
-              },
+              min_price: { $min: "$variants.price" },
+              min_sale_price: { $min: "$variants.sale_price" },
             },
           },
           {
             $project: {
               name: 1,
               slug: 1,
-              short_description: 1,
-              has_variants: 1,
-              "variants.sku": 1,
-              "variants.price": 1,
-              "variants.sale_price": 1,
-              "variants.stock": 1,
-              "variants.attributes": 1,
+              description: 1,
+              thumbnail: 1,
+              product_type: 1,
+              variants: 1,
               ratings: 1,
               is_featured: 1,
               is_new_arrival: 1,
               is_signature: 1,
               tags: 1,
-              date: 1,
+              status: 1,
               total_stock: 1,
+              min_price: 1,
+              min_sale_price: 1,
+              createdAt: 1,
+              date: 1,
             },
           },
         ],
@@ -281,46 +262,34 @@ exports.getAllProducts = async (query) => {
 
 exports.getProductDetails = async (productId) => {
   const objectId = new mongoose.Types.ObjectId(productId);
+
   const pipeline = [
     {
-      $match: { _id: objectId },
+      $match: {
+        _id: objectId,
+        status: { $ne: "ARCHIVED" },
+      },
     },
     {
       $lookup: {
         from: "reviews",
-        localField: "_id",
-        foreignField: "product_id",
-        as: "reviews",
+        let: { productId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$product_id", "$$productId"] },
+            },
+          },
+          { $sort: { createdAt: -1 } },
+          { $limit: 10 },
+        ],
+        as: "recent_reviews",
       },
     },
     {
       $addFields: {
-        ratings_quantity: { $size: "$reviews" },
-        ratings_average: {
-          $cond: [
-            { $gt: [{ $size: "$reviews" }, 0] },
-            { $avg: "$reviews.rating" },
-            0,
-          ],
-        },
-        total_stock: { $sum: "$variants.stock" },
-        in_stock: {
-          $gt: [
-            {
-              $size: {
-                $filter: {
-                  input: "$variants",
-                  as: "v",
-                  cond: { $gt: ["$$v.stock", 0] },
-                },
-              },
-            },
-            0,
-          ],
-        },
-        recent_reviews: {
-          $slice: [{ $reverseArray: "$reviews" }, 10],
-        },
+        min_price: { $min: "$variants.price" },
+        min_sale_price: { $min: "$variants.sale_price" },
       },
     },
     {
@@ -328,23 +297,22 @@ exports.getProductDetails = async (productId) => {
         name: 1,
         slug: 1,
         description: 1,
-        short_description: 1,
-        "attributes.brand": 1,
         thumbnail: 1,
+        variants_images: 1,
+        attributes: 1,
         variants: 1,
-        price: 1,
-        sale_price: 1,
         has_variants: 1,
+        product_type: 1,
         tags: 1,
         is_featured: 1,
         is_new_arrival: 1,
         is_best_seller: 1,
         is_signature: 1,
         ratings: 1,
+        min_price: 1,
+        min_sale_price: 1,
         total_stock: 1,
-        in_stock: 1,
-        weight_in_grams: 1,
-        dimensions: 1,
+        seo: 1,
         status: 1,
         createdAt: 1,
         updatedAt: 1,
@@ -353,12 +321,11 @@ exports.getProductDetails = async (productId) => {
     },
   ];
 
-  const productArr = await repo.aggregate(pipeline);
-  if (!productArr || productArr.length === 0) {
-    throw new AppError(404, "Product not found or not published");
+  const [product] = await repo.aggregate(pipeline);
+  if (!product) {
+    throw new AppError(404, "Product not found");
   }
-
-  return productArr[0];
+  return product;
 };
 
 exports.updateProduct = async (productId, data) => {
