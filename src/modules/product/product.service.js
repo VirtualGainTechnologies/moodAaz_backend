@@ -2,6 +2,7 @@ const slugify = require("slugify");
 const crypto = require("crypto");
 
 const repo = require("./product.repository");
+const categoryRepo = require("../category/category.repository");
 const AppError = require("../../utils/app-error");
 const {
   uploadPublicFile,
@@ -166,6 +167,22 @@ exports.createProduct = async (payload, files) => {
     };
   });
 
+  // build category path
+  const categoryPath = [];
+  let category = await categoryRepo.findById(categoryId, "_id parent", {
+    lean: true,
+  });
+  if (!category) {
+    throw new AppError(400, "Category not found");
+  }
+  while (category) {
+    categoryPath.unshift(category._id); //  root → child order
+    if (!category.parent) break;
+    category = await categoryRepo.findById(category.parent, "_id parent", {
+      lean: true,
+    });
+  }
+
   // product data
   const productData = {
     name: name.trim(),
@@ -177,6 +194,7 @@ exports.createProduct = async (payload, files) => {
     manufacturer,
     brand,
     article_number: articleNumber,
+    category_path: categoryPath,
     category_id: new mongoose.Types.ObjectId(categoryId),
     thumbnail: thumbnailUrl,
     attributes: attributes ? JSON.parse(attributes) : {},

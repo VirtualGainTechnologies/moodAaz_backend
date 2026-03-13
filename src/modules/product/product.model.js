@@ -25,6 +25,16 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: [true, "Article number is required"],
     },
+    category_path: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "category",
+        required: [
+          true,
+          "At least one category ID is required in the category path",
+        ],
+      },
+    ],
     category_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "category",

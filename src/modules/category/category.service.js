@@ -74,7 +74,7 @@ exports.deleteCategory = async (id) => {
 
   const [hasSubcategories, hasProducts] = await Promise.all([
     repo.exists({ parent: id }),
-    productRepo.exists({ category_id: id }),
+    productRepo.exists({ category_path: id }),
   ]);
   if (hasSubcategories) {
     throw new AppError(400, "Cannot delete category with subcategories");
