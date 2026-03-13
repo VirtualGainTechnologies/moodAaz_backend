@@ -27,11 +27,6 @@ exports.createProductValidator = [
     .withMessage("Category ID is required")
     .isMongoId()
     .withMessage("Invalid category ID"),
-  body("productType")
-    .notEmpty()
-    .withMessage("Product type is required")
-    .isIn(["CLOTHING", "BAGS", "JEWELLERY"])
-    .withMessage("Invalid product type"),
   body("brand")
     .optional()
     .trim()

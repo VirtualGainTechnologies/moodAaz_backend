@@ -52,10 +52,6 @@ const productSchema = new mongoose.Schema(
     },
 
     // variants
-    product_type: {
-      type: String,
-      enum: ["CLOTHING", "BAGS", "JEWELLERY"],
-    },
     image_attribute: {
       type: String,
       default: "color",
@@ -79,7 +75,7 @@ const productSchema = new mongoose.Schema(
           },
           attributes: {
             type: Map,
-            of: String,
+            of: mongoose.Schema.Types.Mixed,
             default: new Map(),
             // { color: "Black", size: "M" }
           },
