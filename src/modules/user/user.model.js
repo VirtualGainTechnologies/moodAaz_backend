@@ -18,12 +18,10 @@ const userSchema = new mongoose.Schema(
     phone_code: {
       type: String,
       trim: true,
-      required: [true, "Phone code is required field"],
     },
     phone: {
       type: String,
       trim: true,
-      required: [true, "Phone number is required field"],
       unique: true,
       validate: {
         validator: function (value) {
