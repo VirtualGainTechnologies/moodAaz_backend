@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
       trim: true,
-      unique: true,
       sparse: true,
       validate: {
         validator: (v) => !v || validator.isEmail(v),
@@ -22,7 +21,6 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      unique: true,
       validate: {
         validator: function (value) {
           try {
