@@ -27,7 +27,7 @@ router.post(
 router.get(
   "/",
   authenticate,
-  authorize("SUPER-ADMIN"),
+  authorize("SUPER-ADMIN", "USER"),
   catchAsync("getAllCategories api", getAllCategories),
 );
 
