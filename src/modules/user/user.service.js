@@ -112,3 +112,13 @@ exports.verifyAuthentication = async (payload) => {
     authType,
   };
 };
+
+exports.updateUser = async (userId, payload) => {
+  const allowedFields = ["first_name", "last_name", "gender", "date_of_birth", "avatar"];
+  const updateData = Object.keys(payload)
+    .filter((key) => allowedFields.includes(key))
+    .reduce((acc, key) => ({ ...acc, [key]: payload[key] }), {});
+
+  const updatedUser = await repo.updateById(userId, updateData, { new: true });
+  return updatedUser;
+};

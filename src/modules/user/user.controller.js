@@ -43,3 +43,19 @@ exports.verifyAuthentication = async (req, res) => {
     data: result,
   });
 };
+
+exports.updateUser = async (req, res) => {
+  const userId = req.user_id; 
+  const updatePayload = req.body;
+
+  const result = await service.updateUser(userId, updatePayload);
+  if (!result) {
+    throw new AppError(400, "Failed to update user");
+  }
+
+  res.status(200).json({
+    message: "User updated successfully",
+    error: false,
+    data: result,
+  });
+};

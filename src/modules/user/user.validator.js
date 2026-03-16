@@ -31,3 +31,31 @@ exports.verifyAuthenticationValidator = [
     .isIn(["REGISTER", "LOGIN"])
     .withMessage("Invalid auth type"),
 ];
+
+exports.updateUserValidator = [
+  body("first_name")
+    .optional()
+    .isString()
+    .withMessage("First name must be a string"),
+
+  body("last_name")
+    .optional()
+    .isString()
+    .withMessage("Last name must be a string"),
+
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other"])
+    .withMessage("Invalid gender"),
+
+  body("date_of_birth")
+    .optional()
+    .isISO8601()
+    .toDate()
+    .withMessage("Invalid date of birth"),
+
+  body("avatar")
+    .optional()
+    .isURL()
+    .withMessage("Avatar must be a valid URL"),
+];
