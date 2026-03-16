@@ -80,6 +80,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    token: {
+      type: String,
+      required: [true, "Token is required field"],
+    },
     status: {
       type: String,
       enum: {

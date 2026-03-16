@@ -106,7 +106,7 @@ exports.verifyAuthentication = async (payload) => {
   }
 
   return {
-    token: result.token,
+    token: token.data,
     role: result.role,
     [type.toLowerCase()]: value,
     authType,

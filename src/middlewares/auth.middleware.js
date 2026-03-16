@@ -15,12 +15,10 @@ module.exports = async (req, res, next) => {
     if (decoded.error) {
       return next(new AppError(401, "Invalid or expired token"));
     }
-
     const authenticatedUser =
       decoded.data.type === "ADMIN"
         ? await adminRepo.findOne({ token }, "_id role", { lean: true })
         : await userRepo.findOne({ token }, "_id role", { lean: true });
-
     if (!authenticatedUser) {
       throw new AppError(401, "Session is expired, please login again");
     }

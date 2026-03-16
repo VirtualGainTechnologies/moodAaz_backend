@@ -24,12 +24,7 @@ router.post(
   catchAsync("createCategory api", createCategory),
 );
 
-router.get(
-  "/",
-  authenticate,
-  authorize("SUPER-ADMIN", "USER"),
-  catchAsync("getAllCategories api", getAllCategories),
-);
+router.get("/", catchAsync("getAllCategories api", getAllCategories));
 
 router.get(
   "/main",
