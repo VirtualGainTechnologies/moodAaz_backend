@@ -12,8 +12,7 @@ exports.createMedia = async (payload, file) => {
   const media = await repo.create({
     type,
     name,
-    url: uploadResult.url,
-    s3_key: uploadResult.key,
+    key: uploadResult.key,
   });
   if (!media) {
     throw new AppError(400, "Failed to create media");
@@ -23,13 +22,13 @@ exports.createMedia = async (payload, file) => {
 };
 
 exports.deleteMedia = async (mediaId) => {
-  const media = await repo.findById(mediaId, "s3_key", { lean: true });
+  const media = await repo.findById(mediaId, "key", { lean: true });
   if (!media) {
     throw new AppError(404, "Media not found");
   }
 
   // delete from S3 & DB
-  await deleteFile(media.s3_key);
+  await deleteFile(media.key);
   const deleted = await repo.deleteById(mediaId);
   if (!deleted) {
     throw new AppError(400, "Failed to delete media record");
