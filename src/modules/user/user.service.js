@@ -106,7 +106,7 @@ exports.verifyAuthentication = async (payload) => {
   }
 
   return {
-    token: result.token,
+    token: token.data,
     role: result.role,
     [type.toLowerCase()]: value,
     authType,
@@ -114,7 +114,7 @@ exports.verifyAuthentication = async (payload) => {
 };
 
 exports.updateUser = async (userId, payload) => {
-  const allowedFields = ["first_name", "last_name", "gender", "date_of_birth", "avatar"];
+  const allowedFields = ["first_name", "last_name", "gender"];
   const updateData = Object.keys(payload)
     .filter((key) => allowedFields.includes(key))
     .reduce((acc, key) => ({ ...acc, [key]: payload[key] }), {});

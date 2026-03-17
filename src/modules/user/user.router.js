@@ -1,17 +1,19 @@
 const router = require("express").Router();
-
-const { getIpAndLocation } = require("../../middlewares");
+const { getIpAndLocation, authenticate, authorize } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catch-async");
-const { authenticate, authorize } = require("../../middlewares");
 const {
   initiateAuthentication,
   verifyAuthentication,
   updateUser,
+  initiateContactUpdate,
+  verifyContactUpdate,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
   verifyAuthenticationValidator,
   updateUserValidator,
+  initiateContactUpdateValidator,
+  verifyContactUpdateValidator,
 } = require("./user.validator");
 
 router.post(
@@ -32,6 +34,20 @@ router.put(
   authorize("USER"),
   updateUserValidator,
   catchAsync("updateUser api", updateUser)
+);
+router.post(
+  "/update/contact/initiate",
+  authenticate,
+  authorize("USER"),
+  initiateContactUpdateValidator,
+  catchAsync("initiateContactUpdate api", initiateContactUpdate)
+);
+router.post(
+  "/update/contact/verify",
+  authenticate,
+  authorize("USER"),
+  verifyContactUpdateValidator,
+  catchAsync("verifyContactUpdate api", verifyContactUpdate)
 );
 
 module.exports = router;

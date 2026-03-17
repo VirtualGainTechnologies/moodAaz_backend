@@ -57,19 +57,6 @@ const userSchema = new mongoose.Schema(
         message: "Gender must be male, female, or other",
       },
     },
-    date_of_birth: {
-      type: Date,
-      validate: {
-        validator: function (v) {
-          return !v || v < new Date();
-        },
-        message: "Date of birth must be a valid past date",
-      },
-    },
-    avatar: {
-      type: String,
-      trim: true,
-    },
     profile_completed: {
       type: Boolean,
       default: false,
@@ -94,6 +81,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       min: [0, "Credits cannot be negative"],
       default: 0,
+    },
+    token: {
+      type: String,
+      required: true,
     },
     wishlist: [
       {

@@ -47,15 +47,40 @@ exports.updateUserValidator = [
     .optional()
     .isIn(["male", "female", "other"])
     .withMessage("Invalid gender"),
+];
 
-  body("date_of_birth")
+exports.initiateContactUpdateValidator = [
+  body()
+    .custom((value) => {
+      if ((!value.email && !value.phone) || (value.email && value.phone)) {
+        throw new Error("Provide either email or phone, not both");
+      }
+      return true;
+    }),
+  body("email")
     .optional()
-    .isISO8601()
-    .toDate()
-    .withMessage("Invalid date of birth"),
+    .isEmail()
+    .withMessage("Invalid email"),
+  body("phone")
+    .optional()
+    .isMobilePhone("any")
+    .withMessage("Invalid phone number"),
+  body("phone_code")
+    .optional()
+    .if(body("phone").exists())
+    .notEmpty()
+    .withMessage("Phone code is required when updating phone"),
+];
 
-  body("avatar")
-    .optional()
-    .isURL()
-    .withMessage("Avatar must be a valid URL"),
+exports.verifyContactUpdateValidator = [
+  ...exports.initiateContactUpdateValidator,
+  body("otpId")
+    .notEmpty()
+    .withMessage("OTP id is required")
+    .isMongoId()
+    .withMessage("Invalid OTP id"),
+  body("otp")
+    .notEmpty()
+    .isLength({ min: 6, max: 6 })
+    .withMessage("OTP must be exactly 6 digits"),
 ];

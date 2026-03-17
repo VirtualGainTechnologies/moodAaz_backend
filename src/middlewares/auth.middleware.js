@@ -5,12 +5,13 @@ const userRepo = require("../modules/user/user.repository");
 
 module.exports = async (req, res, next) => {
   try {
-    const token =
-      req.signedCookies?.admin_token || req.signedCookies?.user_token;
-    if (!token) {
-      return next(new AppError(401, "Authentication required"));
-    }
-
+   const token =
+  req.signedCookies?.admin_token ||
+  req.signedCookies?.user_token 
+  
+if (!token) {
+  return next(new AppError(401, "Authentication required"));
+}
     const decoded = verifyJwtToken(token);
     if (decoded.error) {
       return next(new AppError(401, "Invalid or expired token"));
