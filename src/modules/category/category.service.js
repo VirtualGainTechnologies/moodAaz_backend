@@ -3,6 +3,10 @@ const slugify = require("slugify");
 const repo = require("./category.repository");
 const productRepo = require("../product/product.repository");
 const AppError = require("../../utils/app-error");
+const {
+  uploadPublicFile,
+  deleteFile,
+} = require("../../services/file.service");
 
 const buildTree = (categories, parentId = null) => {
   return categories
@@ -10,12 +14,17 @@ const buildTree = (categories, parentId = null) => {
     .map((c) => ({
       _id: c._id,
       name: c.name,
+      category_image: c.category_image,
       children: buildTree(categories, c._id),
     }));
 };
 
-exports.createCategory = async (payload) => {
+exports.createCategory = async (payload, file) => {
   const { name, parent = null } = payload;
+  if (!file) {
+    throw new AppError(400, "Category image is required");
+  }
+
   const slug = slugify(name, { lower: true });
   if (await repo.exists({ slug })) {
     throw new AppError(409, "Category already exists");
@@ -30,7 +39,8 @@ exports.createCategory = async (payload) => {
     level = parentCat.level + 1;
   }
 
-  return repo.create({ ...payload, slug, level });
+  const { key } = await uploadPublicFile(file, "category-image", 5);
+  return repo.create({ ...payload, slug, level, image: key });
 };
 
 exports.getAllCategories = async () => {
@@ -38,9 +48,9 @@ exports.getAllCategories = async () => {
     {
       is_active: true,
     },
-    "_id name parent",
+    "_id name parent image",
     {
-      lean: true,
+      lean: { virtuals: true },
     },
   );
   if (!categories) {
@@ -50,24 +60,43 @@ exports.getAllCategories = async () => {
 };
 
 exports.getCategoriesByParent = async (parentId) => {
-  return repo.findMany({ parent: parentId }, "_id name slug", { lean: true });
+  return repo.findMany({ parent: parentId }, "_id name slug image", {
+    lean: { virtuals: true },
+  });
 };
 
-exports.updateCategory = async (id, name) => {
-  const category = await repo.findById(id, "_id", { lean: true });
+exports.updateCategory = async (payload) => {
+  const { id, name, image } = payload;
+  if (!name && !image) {
+    throw new AppError(400, "Nothing to update");
+  }
+
+  const updateData = {};
+  const category = await repo.findById(id, "_id image", { lean: true });
   if (!category) {
     throw new AppError(404, "Category not found");
   }
-  const slug = slugify(name, { lower: true });
-  if (await repo.exists({ slug })) {
-    throw new AppError(400, "Category name already exists");
+
+  if (name) {
+    const slug = slugify(name, { lower: true });
+    if (await repo.exists({ slug })) {
+      throw new AppError(400, "Category name already exists");
+    }
+    updateData.name = name;
+    updateData.slug = slug;
   }
 
-  return repo.updateById(id, { name, slug }, { returnDocument: "after" });
+  if (image) {
+    await deleteFile(category.image);
+    const { key } = await uploadPublicFile(image, "category-image", 5);
+    updateData.image = key;
+  }
+
+  return repo.updateById(id, updateData, { returnDocument: "after" });
 };
 
 exports.deleteCategory = async (id) => {
-  const category = await repo.findById(id, "_id", { lean: true });
+  const category = await repo.findById(id, "_id image", { lean: true });
   if (!category) {
     throw new AppError(404, "Category not found");
   }
@@ -83,6 +112,9 @@ exports.deleteCategory = async (id) => {
     throw new AppError(400, "Cannot delete category used by products");
   }
 
+  if (category.image) {
+    await deleteFile(category.image);
+  }
   await repo.deleteById(id);
   return true;
 };

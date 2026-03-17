@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const { authenticate, authorize } = require("../../middlewares");
+const { authenticate, authorize, multer } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catch-async");
 const {
   createCategory,
@@ -20,39 +20,34 @@ router.post(
   "/create",
   authenticate,
   authorize("SUPER-ADMIN"),
+  multer.single("image"),
   createCategoryValidator,
   catchAsync("createCategory api", createCategory),
 );
 
 router.get("/", catchAsync("getAllCategories api", getAllCategories));
 
-router.get(
-  "/main",
-  authenticate,
-  authorize("SUPER-ADMIN"),
-  catchAsync("getMainCategories api", getMainCategories),
-);
+router.get("/main", catchAsync("getMainCategories api", getMainCategories));
 
 router.get(
   "/:id/subcategories",
-  authenticate,
-  authorize("SUPER-ADMIN"),
   categoryIdParamValidator,
   catchAsync("getSubCategories api", getSubCategories),
 );
 
 router.put(
   "/update/:id",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
+  multer.single("image"),
   updateCategoryValidator,
   catchAsync("updateCategory api", updateCategory),
 );
 
 router.delete(
   "/delete/:id",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
   categoryIdParamValidator,
   catchAsync("deleteCategory api", deleteCategory),
 );

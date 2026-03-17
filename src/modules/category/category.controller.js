@@ -2,7 +2,7 @@ const AppError = require("../../utils/app-error");
 const service = require("./category.service");
 
 exports.createCategory = async (req, res) => {
-  const category = await service.createCategory(req.body);
+  const category = await service.createCategory(req.body, req.file);
   if (!category) {
     throw new AppError(400, "Failed to create category");
   }
@@ -53,7 +53,11 @@ exports.getMainCategories = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
   const { name } = req.body;
-  const category = await service.updateCategory(req.params.id, name);
+  const payload = { name, id: req.params.id };
+  if (req.file) {
+    payload.image = req.file;
+  }
+  const category = await service.updateCategory(payload);
   if (!category) {
     throw new AppError(400, "Failed to update category");
   }
