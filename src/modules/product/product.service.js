@@ -1,5 +1,6 @@
 const slugify = require("slugify");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 
 const repo = require("./product.repository");
 const categoryRepo = require("../category/category.repository");
@@ -8,7 +9,41 @@ const {
   uploadPublicFile,
   uploadMultiplePublicFiles,
 } = require("../../services/file.service");
-const mongoose = require("mongoose");
+const {
+  S3_TEST_PUBLIC_BASE_URL,
+  S3_PROD_PUBLIC_BASE_URL,
+  NODE_ENV,
+} = require("../../config/env");
+
+const formatProductImages = (products) => {
+  const BASE_URL =
+    NODE_ENV === "production"
+      ? S3_PROD_PUBLIC_BASE_URL
+      : S3_TEST_PUBLIC_BASE_URL;
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+
+    // thumbnail
+    if (p.thumbnail) {
+      p.thumbnail = BASE_URL + "/" + p.thumbnail;
+    }
+
+    // variants_images
+    if (p.variants_images) {
+      for (let j = 0; j < p.variants_images.length; j++) {
+        const variant = p.variants_images[j];
+
+        if (variant.images?.length) {
+          for (let k = 0; k < variant.images.length; k++) {
+            variant.images[k] = BASE_URL + "/" + variant.images[k];
+          }
+        }
+      }
+    }
+  }
+
+  return products;
+};
 
 const buildMatchStage = (filters = {}) => {
   const {
@@ -118,7 +153,7 @@ exports.createProduct = async (payload, files) => {
   }
 
   // upload thumbnail
-  const { url: thumbnailUrl } = await uploadPublicFile(
+  const { key: thumbnailKey } = await uploadPublicFile(
     thumbnail,
     "product-thumbnail",
     5,
@@ -135,7 +170,7 @@ exports.createProduct = async (payload, files) => {
       );
       return {
         value,
-        images: uploaded.map((x) => x.url),
+        images: uploaded.map((x) => x.key),
       };
     }),
   );
@@ -196,7 +231,7 @@ exports.createProduct = async (payload, files) => {
     article_number: articleNumber,
     category_path: categoryPath,
     category_id: new mongoose.Types.ObjectId(categoryId),
-    thumbnail: thumbnailUrl,
+    thumbnail: thumbnailKey,
     attributes: attributes ? JSON.parse(attributes) : {},
     image_attribute: imageAttribute,
     variants_images: variantsImages,
@@ -213,7 +248,7 @@ exports.createProduct = async (payload, files) => {
   if (!product) {
     throw new AppError(400, "Failed to create product");
   }
-  return product;
+  return formatProductImages([product])[0];
 };
 
 exports.getAllProducts = async (query) => {
@@ -243,6 +278,8 @@ exports.getAllProducts = async (query) => {
               thumbnail: 1,
               product_type: 1,
               variants: 1,
+              variants_images: 1,
+              attributes: 1,
               ratings: 1,
               is_featured: 1,
               is_new_arrival: 1,
@@ -273,7 +310,10 @@ exports.getAllProducts = async (query) => {
   if (!result) {
     throw new AppError(400, "Failed to fetch products");
   }
-  return result;
+  return {
+    totalRecords: result.totalRecords,
+    products: formatProductImages(result.products),
+  };
 };
 
 exports.getProductDetails = async (productId) => {
@@ -341,7 +381,7 @@ exports.getProductDetails = async (productId) => {
   if (!product) {
     throw new AppError(404, "Product not found");
   }
-  return product;
+  return formatProductImages([product])[0];
 };
 
 exports.updateProduct = async (productId, data) => {
