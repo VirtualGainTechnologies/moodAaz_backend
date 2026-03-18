@@ -15,34 +15,22 @@ const {
   NODE_ENV,
 } = require("../../config/env");
 
-const formatProductImages = (products) => {
-  const BASE_URL =
-    NODE_ENV === "production"
-      ? S3_PROD_PUBLIC_BASE_URL
-      : S3_TEST_PUBLIC_BASE_URL;
-  for (let i = 0; i < products.length; i++) {
-    const p = products[i];
+const S3_BASE_URL =
+  NODE_ENV === "production" ? S3_PROD_PUBLIC_BASE_URL : S3_TEST_PUBLIC_BASE_URL;
 
-    // thumbnail
-    if (p.thumbnail) {
-      p.thumbnail = BASE_URL + "/" + p.thumbnail;
-    }
-
-    // variants_images
-    if (p.variants_images) {
-      for (let j = 0; j < p.variants_images.length; j++) {
-        const variant = p.variants_images[j];
-
-        if (variant.images?.length) {
-          for (let k = 0; k < variant.images.length; k++) {
-            variant.images[k] = BASE_URL + "/" + variant.images[k];
-          }
-        }
+const formatProductImages = (variantsImages) => {
+  for (let i = 0; i < variantsImages.length; i++) {
+    const variant = variantsImages[i];
+    if (variant.images?.length) {
+      for (let j = 0; j < variant.images.length; j++) {
+        variant.images[j] = S3_BASE_URL + "/" + variant.images[j];
       }
     }
+    if (variant.thumbnail) {
+      variant.thumbnail = S3_BASE_URL + "/" + variant.thumbnail;
+    }
   }
-
-  return products;
+  return variantsImages;
 };
 
 const buildMatchStage = (filters = {}) => {
@@ -56,6 +44,7 @@ const buildMatchStage = (filters = {}) => {
     maxPrice,
     inStock,
     search,
+    categoryId,
   } = filters;
 
   const match = {
@@ -75,6 +64,9 @@ const buildMatchStage = (filters = {}) => {
     }),
     ...(search?.trim() && {
       $text: { $search: search.trim() },
+    }),
+    ...(categoryId && {
+      category_path: new mongoose.Types.ObjectId(categoryId),
     }),
   };
   if (inStock) {
@@ -132,48 +124,63 @@ exports.createProduct = async (payload, files) => {
   const articleNumber = `MDZ-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
 
   // file parsing
-  let thumbnail = null;
   const images = new Map();
+  const thumbnails = new Map();
   for (const file of files) {
-    if (file.fieldname === "thumbnail") {
-      thumbnail = file;
-      continue;
-    }
-    const match = file.fieldname.match(/^variantImages\[(.+?):(.+?)\]$/);
-    if (!match) {
+    const matchImages = file.fieldname.match(/^variantImages\[(.+?):(.+?)\]$/);
+    const matchThumbnail = file.fieldname.match(
+      /^variantThumbnail\[(.+?):(.+?)\]$/,
+    );
+    if (matchImages) {
+      const attribute = matchImages[1].toLowerCase();
+      const value = matchImages[2].toLowerCase();
+      const key = `${attribute}:${value}`;
+      (images.get(key) ?? images.set(key, []).get(key)).push(file);
+    } else if (matchThumbnail) {
+      const attribute = matchThumbnail[1].toLowerCase();
+      const value = matchThumbnail[2].toLowerCase();
+      const key = `${attribute}:${value}`;
+      thumbnails.set(key, file);
+    } else {
       throw new AppError(400, `Invalid image field: ${file.fieldname}`);
     }
-    const attribute = match[1].toLowerCase();
-    const value = match[2].toLowerCase();
-    const key = `${attribute}:${value}`;
-    (images.get(key) ?? images.set(key, []).get(key)).push(file);
-  }
-  if (!thumbnail) {
-    throw new AppError(400, "Thumbnail image is required");
   }
 
-  // upload thumbnail
-  const { key: thumbnailKey } = await uploadPublicFile(
-    thumbnail,
-    "product-thumbnail",
-    5,
-  );
-
-  // upload variants images
-  const variantsImages = await Promise.all(
-    Array.from(images.entries()).map(async ([key, files]) => {
-      const [, value] = key.split(":");
-      const uploaded = await uploadMultiplePublicFiles(
+  // upload product images and thumbnails
+  const uploadPrductImage = async (imagesMap, thumbnailMap) => {
+    const varientimageArr = [];
+    if (!imagesMap.size) {
+      throw new AppError(400, "At least one variant image is required");
+    }
+    for (const [key, files] of imagesMap.entries()) {
+      const [attribute, value] = key.split(":");
+      const uploadedImages = await uploadMultiplePublicFiles(
         files,
         "product-gallery",
         5,
       );
-      return {
+      const thumbnailFile = thumbnailMap.get(key);
+      let uploadedThumbnail;
+      if (thumbnailFile) {
+        uploadedThumbnail = await uploadPublicFile(
+          thumbnailFile,
+          "product-thumbnail",
+          5,
+        );
+      } else {
+        throw new AppError(
+          400,
+          `Thumbnail is required for variant with ${attribute}=${value}`,
+        );
+      }
+      varientimageArr.push({
         value,
-        images: uploaded.map((x) => x.key),
-      };
-    }),
-  );
+        images: uploadedImages.map((x) => x.key),
+        thumbnail: uploadedThumbnail.key,
+      });
+    }
+    return varientimageArr;
+  };
 
   // variants
   const parsedVariants = JSON.parse(variants || "[]");
@@ -231,10 +238,9 @@ exports.createProduct = async (payload, files) => {
     article_number: articleNumber,
     category_path: categoryPath,
     category_id: new mongoose.Types.ObjectId(categoryId),
-    thumbnail: thumbnailKey,
     attributes: attributes ? JSON.parse(attributes) : {},
     image_attribute: imageAttribute,
-    variants_images: variantsImages,
+    variants_images: await uploadPrductImage(images, thumbnails),
     variants: finalVariants,
     tags: JSON.parse(tags || "[]")
       .map((t) => t.toLowerCase().trim())
@@ -248,7 +254,9 @@ exports.createProduct = async (payload, files) => {
   if (!product) {
     throw new AppError(400, "Failed to create product");
   }
-  return formatProductImages([product])[0];
+
+  product.variants_images = formatProductImages(product.variants_images);
+  return product;
 };
 
 exports.getAllProducts = async (query) => {
@@ -268,6 +276,25 @@ exports.getAllProducts = async (query) => {
             $addFields: {
               min_price: { $min: "$variants.price" },
               min_sale_price: { $min: "$variants.sale_price" },
+              variants_images: {
+                $map: {
+                  input: "$variants_images",
+                  as: "variant",
+                  in: {
+                    value: "$$variant.value",
+                    images: {
+                      $map: {
+                        input: "$$variant.images",
+                        as: "image",
+                        in: { $concat: [S3_BASE_URL, "/", "$$image"] },
+                      },
+                    },
+                    thumbnail: {
+                      $concat: [S3_BASE_URL, "/", "$$variant.thumbnail"],
+                    },
+                  },
+                },
+              },
             },
           },
           {
@@ -310,10 +337,7 @@ exports.getAllProducts = async (query) => {
   if (!result) {
     throw new AppError(400, "Failed to fetch products");
   }
-  return {
-    totalRecords: result.totalRecords,
-    products: formatProductImages(result.products),
-  };
+  return result;
 };
 
 exports.getProductDetails = async (productId) => {
@@ -346,6 +370,23 @@ exports.getProductDetails = async (productId) => {
       $addFields: {
         min_price: { $min: "$variants.price" },
         min_sale_price: { $min: "$variants.sale_price" },
+        variants_images: {
+          $map: {
+            input: "$variants_images",
+            as: "variant",
+            in: {
+              value: "$$variant.value",
+              images: {
+                $map: {
+                  input: "$$variant.images",
+                  as: "image",
+                  in: { $concat: [S3_BASE_URL, "/", "$$image"] },
+                },
+              },
+              thumbnail: { $concat: [S3_BASE_URL, "/", "$$variant.thumbnail"] },
+            },
+          },
+        },
       },
     },
     {

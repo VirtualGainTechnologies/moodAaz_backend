@@ -17,8 +17,8 @@ const {
 
 router.post(
   "/create",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
   multer.any(),
   createProductValidator,
   catchAsync("createProduct api", createProduct),
@@ -26,16 +26,16 @@ router.post(
 
 router.get(
   "/:id",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
   getProductDetailsValidator,
   catchAsync("getProductDetails api", getProductDetails),
 );
 
 router.get(
   "/",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
   getAllProductsValidator,
   catchAsync("getAllProducts api", getAllProducts),
 );

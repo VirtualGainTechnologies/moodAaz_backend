@@ -40,10 +40,6 @@ const productSchema = new mongoose.Schema(
       ref: "category",
       required: [true, "Category ID is required"],
     },
-    thumbnail: {
-      type: String,
-      required: [true, "Product thumbnail is required"],
-    },
     brand: {
       type: String,
       default: "MOODAAZ",
@@ -70,6 +66,7 @@ const productSchema = new mongoose.Schema(
       {
         value: String,
         images: [String],
+        thumbnail: String,
         _id: false,
       },
     ],
