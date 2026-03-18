@@ -47,7 +47,6 @@ exports.verifyAuthentication = async (req, res) => {
 };
 
 exports.updateUser = async (req, res) => {
-  // 🔹 FIXED: Use req.user._id instead of req.user_id
   const userId = req.user._id;
   const updatePayload = req.body;
 

@@ -45,7 +45,7 @@ exports.updateUserValidator = [
 
   body("gender")
     .optional()
-    .isIn(["male", "female", "other"])
+    .isIn(["MALE", "FEMALE", "OTHER"])
     .withMessage("Invalid gender"),
 ];
 
