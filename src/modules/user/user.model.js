@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: {
-        values: ["male", "female", "other"],
+        values: ["MALE", "FEMALE", "OTHER"],
         message: "Gender must be male, female, or other",
       },
     },
