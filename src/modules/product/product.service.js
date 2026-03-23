@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 const repo = require("./product.repository");
+const reviewsRepo = require("../review/review.repository");
 const categoryRepo = require("../category/category.repository");
 const AppError = require("../../utils/app-error");
 const {
@@ -18,21 +19,6 @@ const {
 const S3_BASE_URL =
   NODE_ENV === "production" ? S3_PROD_PUBLIC_BASE_URL : S3_TEST_PUBLIC_BASE_URL;
 
-const formatProductImages = (variantsImages) => {
-  for (let i = 0; i < variantsImages.length; i++) {
-    const variant = variantsImages[i];
-    if (variant.images?.length) {
-      for (let j = 0; j < variant.images.length; j++) {
-        variant.images[j] = S3_BASE_URL + "/" + variant.images[j];
-      }
-    }
-    if (variant.thumbnail) {
-      variant.thumbnail = S3_BASE_URL + "/" + variant.thumbnail;
-    }
-  }
-  return variantsImages;
-};
-
 const buildMatchStage = (filters = {}) => {
   const {
     status,
@@ -40,55 +26,65 @@ const buildMatchStage = (filters = {}) => {
     isFeatured,
     isNewArrival,
     isSignature,
+    isBestSeller,
     minPrice,
     maxPrice,
     inStock,
     search,
-    categoryId,
+    categories,
+    color,
+    size,
+    material,
   } = filters;
+  // all variant-level filters in one object so they hit $elemMatch together
+  const variantElemMatch = {
+    ...(color && { "attributes.color": color }),
+    ...(size && { "attributes.size": size }),
+    ...(material && { "attributes.material": material }),
+    ...(minPrice && { price: { $gte: Number(minPrice) } }),
+    ...(maxPrice && { price: { $lte: Number(maxPrice) } }),
+  };
 
   const match = {
     ...(status && { status }),
-    ...(Array.isArray(tags) &&
-      tags.length > 0 && {
-        tags: { $in: tags },
-      }),
     ...(isFeatured && { is_featured: true }),
     ...(isNewArrival && { is_new_arrival: true }),
     ...(isSignature && { is_signature: true }),
-    ...((minPrice || maxPrice) && {
-      "variants.price": {
-        ...(minPrice && { $gte: Number(minPrice) }),
-        ...(maxPrice && { $lte: Number(maxPrice) }),
+    ...(isBestSeller && { is_best_seller: true }),
+    ...(inStock && { total_stock: { $gt: 0 } }),
+    ...(tags && { tags: { $in: tags.split(",").map((tag) => tag.trim()) } }),
+    ...(search?.trim() && { $text: { $search: search.trim() } }),
+    ...(categories && {
+      category_path: {
+        $in: categories
+          .split(",")
+          .map((id) => new mongoose.Types.ObjectId(id.trim())),
       },
     }),
-    ...(search?.trim() && {
-      $text: { $search: search.trim() },
-    }),
-    ...(categoryId && {
-      category_path: new mongoose.Types.ObjectId(categoryId),
+    ...(Object.keys(variantElemMatch).length > 0 && {
+      variants: { $elemMatch: variantElemMatch },
     }),
   };
-  if (inStock) {
-    match["total_stock"] = { $gt: 0 };
-  }
+
   return Object.keys(match).length ? match : {};
 };
 
 const buildSortStage = (sort, hasSearch) => {
   const sortStage = {};
 
+  // rank by text relevance when search query is present
   if (hasSearch) {
     sortStage.score = { $meta: "textScore" };
   }
 
   if (sort) {
     const order = sort.startsWith("-") ? -1 : 1;
-    const field = sort.replace("-", "");
+    const field = sort.replace(/^-/, "");
     sortStage[field] = order;
   }
 
-  if (Object.keys(sortStage).length === 0) {
+  // default sort only when no search and no sort param
+  if (!hasSearch && !sort) {
     sortStage.createdAt = -1;
   }
 
@@ -147,8 +143,9 @@ exports.createProduct = async (payload, files) => {
   }
 
   // upload product images and thumbnails
+  const variantImages = [];
   const uploadPrductImage = async (imagesMap, thumbnailMap) => {
-    const varientimageArr = [];
+    const variants = [];
     if (!imagesMap.size) {
       throw new AppError(400, "At least one variant image is required");
     }
@@ -173,13 +170,18 @@ exports.createProduct = async (payload, files) => {
           `Thumbnail is required for variant with ${attribute}=${value}`,
         );
       }
-      varientimageArr.push({
+      variants.push({
         value,
         images: uploadedImages.map((x) => x.key),
         thumbnail: uploadedThumbnail.key,
       });
+      variantImages.push({
+        value,
+        images: uploadedImages.map((x) => x.url),
+        thumbnail: uploadedThumbnail.url,
+      });
     }
-    return varientimageArr;
+    return variants;
   };
 
   // variants
@@ -254,15 +256,36 @@ exports.createProduct = async (payload, files) => {
   if (!product) {
     throw new AppError(400, "Failed to create product");
   }
-
-  product.variants_images = formatProductImages(product.variants_images);
+  product.variants_images = variantImages;
   return product;
 };
 
 exports.getAllProducts = async (query) => {
-  const { page = 1, limit = 10, sort, search } = query;
+  const {
+    page = 1,
+    limit = 10,
+    sort,
+    search,
+    color,
+    size,
+    material,
+    minPrice,
+    maxPrice,
+  } = query;
+
   const match = buildMatchStage(query);
   const sortStage = buildSortStage(sort, !!search);
+
+  // variant filter conditions — must stay in sync with buildMatchStage variantElemMatch
+  const variantCond = [];
+  if (color) variantCond.push({ $eq: ["$$v.attributes.color", color] });
+  if (size) variantCond.push({ $eq: ["$$v.attributes.size", size] });
+  if (material)
+    variantCond.push({ $eq: ["$$v.attributes.material", material] });
+  if (minPrice) variantCond.push({ $gte: ["$$v.price", Number(minPrice)] });
+  if (maxPrice) variantCond.push({ $lte: ["$$v.price", Number(maxPrice)] });
+  const filterExpr = variantCond.length > 0 ? { $and: variantCond } : true;
+
   const pipeline = [
     { $match: match },
     { $sort: sortStage },
@@ -272,52 +295,155 @@ exports.getAllProducts = async (query) => {
         data: [
           { $skip: (page - 1) * Number(limit) },
           { $limit: Number(limit) },
+
+          // Step 1 — compute price range + pick single best matching variant
           {
             $addFields: {
               min_price: { $min: "$variants.price" },
               min_sale_price: { $min: "$variants.sale_price" },
-              variants_images: {
-                $map: {
-                  input: "$variants_images",
-                  as: "variant",
-                  in: {
-                    value: "$$variant.value",
-                    images: {
-                      $map: {
-                        input: "$$variant.images",
-                        as: "image",
-                        in: { $concat: [S3_BASE_URL, "/", "$$image"] },
+              ...(search && { score: { $meta: "textScore" } }),
+              variant: {
+                $arrayElemAt: [
+                  {
+                    $cond: {
+                      if: {
+                        $gt: [
+                          {
+                            $size: {
+                              $filter: {
+                                input: "$variants",
+                                as: "v",
+                                cond: filterExpr,
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                      then: {
+                        $filter: {
+                          input: "$variants",
+                          as: "v",
+                          cond: filterExpr,
+                        },
+                      },
+                      else: "$variants",
+                    },
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+
+          // Step 2 — inject thumbnail into variant using image_attribute
+          {
+            $addFields: {
+              "variant.thumbnail": {
+                $let: {
+                  vars: {
+                    // extract the image_attribute value from this variant's attributes
+                    // e.g. image_attribute="color" on product, variant has color="red" → "red"
+                    attrValue: {
+                      $toLower: {
+                        $reduce: {
+                          input: { $objectToArray: "$variant.attributes" },
+                          initialValue: null,
+                          in: {
+                            $cond: {
+                              if: { $eq: ["$$this.k", "$image_attribute"] },
+                              then: "$$this.v",
+                              else: "$$value",
+                            },
+                          },
+                        },
                       },
                     },
-                    thumbnail: {
-                      $concat: [S3_BASE_URL, "/", "$$variant.thumbnail"],
+                  },
+                  in: {
+                    $let: {
+                      vars: {
+                        // find matching entry in variants_images by value
+                        matched: {
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: "$variants_images",
+                                as: "vi",
+                                cond: { $eq: ["$$vi.value", "$$attrValue"] },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                      in: {
+                        $cond: {
+                          if: { $ifNull: ["$$matched.thumbnail", false] },
+                          then: {
+                            $concat: [S3_BASE_URL, "/", "$$matched.thumbnail"],
+                          },
+                          else: null,
+                        },
+                      },
                     },
                   },
                 },
               },
+              "variant.discount": {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $ifNull: ["$variant.sale_price", false] },
+                      { $gt: ["$variant.price", 0] },
+                    ],
+                  },
+                  then: {
+                    $round: [
+                      {
+                        $multiply: [
+                          {
+                            $divide: [
+                              {
+                                $subtract: [
+                                  "$variant.price",
+                                  "$variant.sale_price",
+                                ],
+                              },
+                              "$variant.price",
+                            ],
+                          },
+                          100,
+                        ],
+                      },
+                      0,
+                    ],
+                  },
+                  else: 0,
+                },
+              },
             },
           },
+
+          // Step 3 — return only what the product card needs
           {
             $project: {
               name: 1,
               slug: 1,
-              description: 1,
-              thumbnail: 1,
-              product_type: 1,
-              variants: 1,
-              variants_images: 1,
-              attributes: 1,
-              ratings: 1,
               is_featured: 1,
-              is_new_arrival: 1,
-              is_signature: 1,
-              tags: 1,
-              status: 1,
+              ratings: 1,
               total_stock: 1,
               min_price: 1,
               min_sale_price: 1,
               createdAt: 1,
-              date: 1,
+              ...(search && { score: 1 }),
+              "variant.sku": 1,
+              "variant.price": 1,
+              "variant.sale_price": 1,
+              "variant.stock": 1,
+              "variant.thumbnail": 1,
+              "variant.discount": 1,
+              "variant.attributes": 1,
             },
           },
         ],
@@ -341,79 +467,191 @@ exports.getAllProducts = async (query) => {
 };
 
 exports.getProductDetails = async (productId) => {
-  const objectId = new mongoose.Types.ObjectId(productId);
-
   const pipeline = [
+    // match by id and not deleted
     {
       $match: {
-        _id: objectId,
-        status: { $ne: "ARCHIVED" },
+        _id: new mongoose.Types.ObjectId(productId),
       },
     },
-    {
-      $lookup: {
-        from: "reviews",
-        let: { productId: "$_id" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$product_id", "$$productId"] },
-            },
-          },
-          { $sort: { createdAt: -1 } },
-          { $limit: 10 },
-        ],
-        as: "recent_reviews",
-      },
-    },
+
+    // inject S3 URLs into all variant images
     {
       $addFields: {
-        min_price: { $min: "$variants.price" },
-        min_sale_price: { $min: "$variants.sale_price" },
         variants_images: {
           $map: {
             input: "$variants_images",
-            as: "variant",
+            as: "vi",
             in: {
-              value: "$$variant.value",
+              value: "$$vi.value",
+              thumbnail: { $concat: [S3_BASE_URL, "/", "$$vi.thumbnail"] },
               images: {
                 $map: {
-                  input: "$$variant.images",
-                  as: "image",
-                  in: { $concat: [S3_BASE_URL, "/", "$$image"] },
+                  input: "$$vi.images",
+                  as: "img",
+                  in: { $concat: [S3_BASE_URL, "/", "$$img"] },
                 },
               },
-              thumbnail: { $concat: [S3_BASE_URL, "/", "$$variant.thumbnail"] },
             },
           },
         },
+
+        // inject images + discount into every variant
+        variants: {
+          $map: {
+            input: "$variants",
+            as: "variant",
+            in: {
+              $mergeObjects: [
+                "$$variant",
+                {
+                  // discount percentage
+                  discount: {
+                    $cond: {
+                      if: {
+                        $and: [
+                          { $ifNull: ["$$variant.sale_price", false] },
+                          { $gt: ["$$variant.price", 0] },
+                        ],
+                      },
+                      then: {
+                        $round: [
+                          {
+                            $multiply: [
+                              {
+                                $divide: [
+                                  {
+                                    $subtract: [
+                                      "$$variant.price",
+                                      "$$variant.sale_price",
+                                    ],
+                                  },
+                                  "$$variant.price",
+                                ],
+                              },
+                              100,
+                            ],
+                          },
+                          0,
+                        ],
+                      },
+                      else: 0,
+                    },
+                  },
+
+                  // inject images from variants_images based on image_attribute
+                  images: {
+                    $let: {
+                      vars: {
+                        attrValue: {
+                          $toLower: {
+                            $reduce: {
+                              input: { $objectToArray: "$$variant.attributes" },
+                              initialValue: null,
+                              in: {
+                                $cond: {
+                                  if: { $eq: ["$$this.k", "$image_attribute"] },
+                                  then: "$$this.v",
+                                  else: "$$value",
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      in: {
+                        $let: {
+                          vars: {
+                            matched: {
+                              $arrayElemAt: [
+                                {
+                                  $filter: {
+                                    input: "$variants_images",
+                                    as: "vi",
+                                    cond: {
+                                      $eq: ["$$vi.value", "$$attrValue"],
+                                    },
+                                  },
+                                },
+                                0,
+                              ],
+                            },
+                          },
+                          in: {
+                            thumbnail: {
+                              $cond: {
+                                if: { $ifNull: ["$$matched.thumbnail", false] },
+                                then: {
+                                  $concat: [
+                                    S3_BASE_URL,
+                                    "/",
+                                    "$$matched.thumbnail",
+                                  ],
+                                },
+                                else: null,
+                              },
+                            },
+                            images: {
+                              $cond: {
+                                if: { $ifNull: ["$$matched.images", false] },
+                                then: {
+                                  $map: {
+                                    input: "$$matched.images",
+                                    as: "img",
+                                    in: {
+                                      $concat: [S3_BASE_URL, "/", "$$img"],
+                                    },
+                                  },
+                                },
+                                else: [],
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+
+        // price range across all variants
+        min_price: { $min: "$variants.price" },
+        max_price: { $max: "$variants.price" },
+        min_sale_price: { $min: "$variants.sale_price" },
       },
     },
+
+    // return full product data
     {
       $project: {
         name: 1,
         slug: 1,
         description: 1,
-        thumbnail: 1,
-        variants_images: 1,
+        article_number: 1,
+        brand: 1,
+        country_of_origin: 1,
+        manufacturer: 1,
+        warranty: 1,
+        care_instructions: 1,
         attributes: 1,
         variants: 1,
-        has_variants: 1,
-        product_type: 1,
+        total_stock: 1,
+        min_price: 1,
+        max_price: 1,
+        min_sale_price: 1,
         tags: 1,
         is_featured: 1,
         is_new_arrival: 1,
         is_best_seller: 1,
         is_signature: 1,
         ratings: 1,
-        min_price: 1,
-        min_sale_price: 1,
-        total_stock: 1,
         seo: 1,
         status: 1,
+        category_id: 1,
         createdAt: 1,
-        updatedAt: 1,
-        recent_reviews: 1,
       },
     },
   ];
@@ -422,7 +660,68 @@ exports.getProductDetails = async (productId) => {
   if (!product) {
     throw new AppError(404, "Product not found");
   }
-  return formatProductImages([product])[0];
+
+  // fetch latest 5 approved reviews with user name populated
+  const reviewsPipeline = [
+    {
+      $match: {
+        product_id: new mongoose.Types.ObjectId(productId),
+        status: "APPROVED",
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+    {
+      $limit: 5,
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user_id",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        rating: 1,
+        title: 1,
+        comment: 1,
+        images: {
+          $map: {
+            input: "$images",
+            as: "img",
+            in: { $concat: [S3_BASE_URL, "/", "$$img"] },
+          },
+        },
+        votes: 1,
+        is_verified_purchase: 1,
+        user_name: {
+          $trim: {
+            input: { $concat: ["$user.first_name", " ", "$user.last_name"] },
+          },
+        },
+        user_id: "$user._id",
+      },
+    },
+  ];
+
+  const reviews = await reviewsRepo.aggregate(reviewsPipeline);
+  if (!reviews) {
+    throw new AppError(400, "Failed to fetch reviews");
+  }
+  
+  return {
+    ...product,
+    reviews,
+  };
 };
 
 exports.updateProduct = async (productId, data) => {

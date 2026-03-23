@@ -10,7 +10,7 @@ const {
   catchAsync,
   catchAsyncWithSession,
 } = require("../../utils/catch-async");
-const { authenticate, authorize } = require("../../middlewares");
+const { authenticate, authorize, multer } = require("../../middlewares");
 const {
   createReviewValidator,
   updateReviewValidator,
@@ -22,6 +22,7 @@ router.post(
   "/create/:productId",
   authenticate,
   authorize("USER"),
+  multer.array("images", 5),
   createReviewValidator,
   catchAsyncWithSession("createReview api", createReview),
 );

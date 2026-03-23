@@ -2,12 +2,17 @@ const AppError = require("../../utils/app-error");
 const service = require("./review.service");
 
 exports.createReview = async (req, session) => {
-  const review = await service.createReview(
-    req.params.productId,
-    req.user._id,
-    req.body,
+  const { title, comment, rating } = req.body;
+
+  const review = await service.createReview({
+    title,
+    comment,
+    rating,
+    files: req.files,
+    productId: req.params.productId,
+    userId: req.user._id,
     session,
-  );
+  });
   if (!review) {
     throw new AppError(400, "Failed to create review");
   }
