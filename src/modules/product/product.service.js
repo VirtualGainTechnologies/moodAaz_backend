@@ -3,13 +3,14 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 const repo = require("./product.repository");
+const cache = require("./product.cache");
 const reviewsRepo = require("../review/review.repository");
 const categoryRepo = require("../category/category.repository");
 const AppError = require("../../utils/app-error");
 const {
   uploadPublicFile,
   uploadMultiplePublicFiles,
-} = require("../../services/file.service");
+} = require("../../services");
 const {
   S3_TEST_PUBLIC_BASE_URL,
   S3_PROD_PUBLIC_BASE_URL,
@@ -42,7 +43,9 @@ const buildMatchStage = (filters = {}) => {
 
   // attributes filters
   const patternList = patterns ? patterns.split(",").map((p) => p.trim()) : [];
-  const occasionList = occasions ? occasions.split(",").map((o) => o.trim()) : [];
+  const occasionList = occasions
+    ? occasions.split(",").map((o) => o.trim())
+    : [];
 
   // all variant-level filters in one object so they hit $elemMatch together
   const variantElemMatch = {
@@ -125,6 +128,9 @@ const buildSortStage = (sort, hasSearch) => {
 
   switch (sort) {
     case "relevance":
+      if (!hasSearch) {
+        sortStage.createdAt = -1;
+      }
       break;
 
     case "popularity":
@@ -320,6 +326,9 @@ exports.createProduct = async (payload, files) => {
     throw new AppError(400, "Failed to create product");
   }
   product.variants_images = variantImages;
+
+  // remove list cache
+  await cache("LIST").invalidate();
   return product;
 };
 
@@ -336,6 +345,13 @@ exports.getAllProducts = async (query) => {
     maxPrice,
     minDiscount,
   } = query;
+
+  // skip cache for search — too many unique combinations
+  const shouldCache = !search;
+  if (shouldCache) {
+    const cached = await cache("LIST").get(query);
+    if (cached) return cached;
+  }
 
   const match = buildMatchStage(query);
   const sortStage = buildSortStage(sort, !!search);
@@ -548,10 +564,14 @@ exports.getAllProducts = async (query) => {
   if (!result) {
     throw new AppError(400, "Failed to fetch products");
   }
+
+  if (shouldCache) await cache("LIST").set(query, result);
   return result;
 };
 
 exports.getProductDetails = async (productId) => {
+  const cached = await cache("DETAILS").get(productId);
+  if (cached) return cached;
   const pipeline = [
     // match by id and not deleted
     {
@@ -803,10 +823,12 @@ exports.getProductDetails = async (productId) => {
     throw new AppError(400, "Failed to fetch reviews");
   }
 
-  return {
+  const result = {
     ...product,
     reviews,
   };
+  await cache("DETAILS").set(productId, result);
+  return result;
 };
 
 exports.updateProduct = async (productId, data) => {
@@ -829,5 +851,9 @@ exports.updateProduct = async (productId, data) => {
   if (!updated) {
     throw new AppError(400, "Failed to update product");
   }
+
+  // remove cache
+  await cache("DETAILS").invalidate(productId);
+  await cache("LIST").invalidate();
   return updated;
 };

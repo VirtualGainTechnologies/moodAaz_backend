@@ -6,7 +6,7 @@ const AppError = require("../../utils/app-error");
 const {
   uploadMultiplePublicFiles,
   deleteMultipleFiles,
-} = require("../../services/file.service");
+} = require("../../services");
 const {
   S3_TEST_PUBLIC_BASE_URL,
   S3_PROD_PUBLIC_BASE_URL,
@@ -180,7 +180,7 @@ exports.getProductReviews = async (productId, query) => {
   );
 };
 
-exports.updateReview = async (payload,session) => {
+exports.updateReview = async (payload, session) => {
   const {
     title,
     rating,

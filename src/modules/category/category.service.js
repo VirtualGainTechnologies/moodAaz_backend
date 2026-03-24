@@ -3,10 +3,7 @@ const slugify = require("slugify");
 const repo = require("./category.repository");
 const productRepo = require("../product/product.repository");
 const AppError = require("../../utils/app-error");
-const {
-  uploadPublicFile,
-  deleteFile,
-} = require("../../services/file.service");
+const { uploadPublicFile, deleteFile } = require("../../services");
 
 const buildTree = (categories, parentId = null) => {
   return categories

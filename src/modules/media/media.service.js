@@ -1,6 +1,6 @@
 const repo = require("./media.repository");
 const AppError = require("../../utils/app-error");
-const { deleteFile, uploadPublicFile } = require("../../services/file.service");
+const { deleteFile, uploadPublicFile } = require("../../services");
 
 exports.createMedia = async (payload, file) => {
   const { type, name } = payload;

@@ -50,4 +50,5 @@ module.exports = {
 
   // redis
   REDIS_URL: env("REDIS_URL"),
+  CACHE_ENABLED: env("CACHE_ENABLED", "false").toLowerCase() === "true",
 };
