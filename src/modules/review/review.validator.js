@@ -44,6 +44,20 @@ exports.updateReviewValidator = [
     .optional()
     .isLength({ min: 10 })
     .withMessage("Comment must be at least 10 characters"),
+  body("removeImages")
+    .optional()
+    .custom((value) => {
+      const validatedImages = JSON.parse(value);
+      if (!Array.isArray(validatedImages)) {
+        throw new Error("removeImages must be an array of image URLs");
+      }
+      for (const url of validatedImages) {
+        if (typeof url !== "string" || !url.startsWith("https://")) {
+          throw new Error(`Invalid image URL: ${url}`);
+        }
+      }
+      return true;
+    }),
 ];
 
 exports.getProductReviewsValidator = [

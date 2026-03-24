@@ -4,15 +4,17 @@ const service = require("./review.service");
 exports.createReview = async (req, session) => {
   const { title, comment, rating } = req.body;
 
-  const review = await service.createReview({
-    title,
-    comment,
-    rating,
-    files: req.files,
-    productId: req.params.productId,
-    userId: req.user._id,
+  const review = await service.createReview(
+    {
+      title,
+      comment,
+      rating,
+      files: req.files,
+      productId: req.params.productId,
+      userId: req.user._id,
+    },
     session,
-  });
+  );
   if (!review) {
     throw new AppError(400, "Failed to create review");
   }
@@ -41,10 +43,20 @@ exports.getProductReviews = async (req, res) => {
 };
 
 exports.updateReview = async (req, session) => {
+  const req_body = { ...req.body };
+  const removeImages = req_body.removeImages
+    ? JSON.parse(req_body.removeImages)
+    : [];
+  delete req_body.removeImages;
+
   const review = await service.updateReview(
-    req.params.reviewId,
-    req.user._id,
-    req.body,
+    {
+      removeImages,
+      files: req.files || [],
+      userId: req.user._id,
+      reviewId: req.params.reviewId,
+      ...req_body,
+    },
     session,
   );
   if (!review) {

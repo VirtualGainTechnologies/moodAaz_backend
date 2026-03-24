@@ -37,6 +37,7 @@ router.put(
   "/:reviewId",
   authenticate,
   authorize("USER"),
+  multer.array("images", 5),
   updateReviewValidator,
   catchAsyncWithSession("updateReview api", updateReview),
 );

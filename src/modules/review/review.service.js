@@ -3,7 +3,10 @@ const mongoose = require("mongoose");
 const repo = require("./review.repository");
 const productRepo = require("../product/product.repository");
 const AppError = require("../../utils/app-error");
-const { uploadMultiplePublicFiles } = require("../../services/file.service");
+const {
+  uploadMultiplePublicFiles,
+  deleteMultipleFiles,
+} = require("../../services/file.service");
 const {
   S3_TEST_PUBLIC_BASE_URL,
   S3_PROD_PUBLIC_BASE_URL,
@@ -47,8 +50,8 @@ const updateProductRating = async (productId, session) => {
   return updated;
 };
 
-exports.createReview = async (payload) => {
-  const { title, comment, rating, files, productId, userId, session } = payload;
+exports.createReview = async (payload, session) => {
+  const { title, comment, rating, files, productId, userId } = payload;
   const data = {
     ...(title && { title }),
     comment,
@@ -177,31 +180,88 @@ exports.getProductReviews = async (productId, query) => {
   );
 };
 
-exports.updateReview = async (reviewId, userId, payload, session) => {
-  const { title, rating, comment } = payload;
+exports.updateReview = async (payload,session) => {
+  const {
+    title,
+    rating,
+    comment,
+    userId,
+    reviewId,
+    files = [],
+    removeImages = [],
+  } = payload;
+  console.log("Payload for updateReview:", payload);
 
   // get existing review
   const existingReview = await repo.findOne(
     { _id: reviewId, user_id: userId },
-    " product_id rating",
+    "product_id rating images",
     { lean: true, session },
   );
   if (!existingReview) {
     throw new AppError(404, "Review not found");
   }
 
-  // update review
+  let updatedImages = [...existingReview.images];
+  const extractS3Key = (url) => {
+    if (!url) return null;
+    return url.replace(`${S3_BASE_URL}/`, "");
+  };
+
+  // handle image removals
+  let keysToRemove = [];
+  if (removeImages.length > 0) {
+    keysToRemove = removeImages.map(extractS3Key);
+    const invalidKeys = keysToRemove.filter(
+      (key) => !existingReview.images.includes(key),
+    );
+    if (invalidKeys.length > 0) {
+      throw new AppError(400, `Invalid image keys: ${invalidKeys.join(", ")}`);
+    }
+    updatedImages = updatedImages.filter((img) => !keysToRemove.includes(img));
+  }
+
+  // handle new image uploads
+  if (files.length > 0) {
+    if (updatedImages.length + files.length > 5) {
+      throw new AppError(
+        400,
+        `Maximum 5 images allowed. You have ${updatedImages.length} and are adding ${files.length}`,
+      );
+    }
+
+    // upload to S3
+    const uploadedImages = await uploadMultiplePublicFiles(
+      files,
+      "reviews-images",
+      5,
+    );
+    updatedImages = [
+      ...updatedImages,
+      ...uploadedImages.map((file) => file.key),
+    ];
+  }
+
+  // update DB first
   const review = await repo.updateOne(
     { _id: reviewId, user_id: userId },
     {
       ...(title && { title }),
       ...(rating && { rating }),
       ...(comment && { comment }),
+      ...(files.length > 0 || removeImages.length > 0
+        ? { images: updatedImages }
+        : {}),
     },
     { returnDocument: "after", runValidators: true, session },
   );
 
-  // update product rating if rating is changed
+  // delete from S3 only after DB succeeds
+  if (removeImages.length > 0) {
+    await deleteMultipleFiles(keysToRemove);
+  }
+
+  // update product rating if rating changed
   if (rating && rating !== existingReview.rating) {
     await updateProductRating(review.product_id, session);
   }
@@ -210,10 +270,24 @@ exports.updateReview = async (reviewId, userId, payload, session) => {
 };
 
 exports.deleteReview = async (reviewId, session) => {
-  const review = await repo.deleteById(reviewId, { session });
+  const review = await repo.findById(reviewId, "product_id images", {
+    session,
+    lean: true,
+  });
   if (!review) {
     throw new AppError(404, "Review not found");
   }
+
+  const deletedImages = review.images || [];
+  if (deletedImages.length) {
+    await deleteMultipleFiles(deletedImages);
+  }
+
+  const deletedReview = await repo.deleteById(reviewId, { session });
+  if (!deletedReview) {
+    throw new AppError(400, "Failed to delete review");
+  }
+
   await updateProductRating(review.product_id, session);
-  return review;
+  return deletedReview;
 };
