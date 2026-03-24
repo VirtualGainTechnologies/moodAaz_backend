@@ -35,7 +35,15 @@ const buildMatchStage = (filters = {}) => {
     color,
     size,
     material,
+    minDiscount,
+    patterns,
+    occasions,
   } = filters;
+
+  // attributes filters
+  const patternList = patterns ? patterns.split(",").map((p) => p.trim()) : [];
+  const occasionList = occasions ? occasions.split(",").map((o) => o.trim()) : [];
+
   // all variant-level filters in one object so they hit $elemMatch together
   const variantElemMatch = {
     ...(color && { "attributes.color": color }),
@@ -64,6 +72,44 @@ const buildMatchStage = (filters = {}) => {
     ...(Object.keys(variantElemMatch).length > 0 && {
       variants: { $elemMatch: variantElemMatch },
     }),
+    ...(patternList.length > 0 && {
+      "attributes.pattern": { $in: patternList },
+    }),
+    ...(occasionList.length > 0 && {
+      "attributes.occasion": { $in: occasionList },
+    }),
+    ...(minDiscount && {
+      $expr: {
+        $anyElementTrue: {
+          $map: {
+            input: "$variants",
+            as: "v",
+            in: {
+              $and: [
+                { $ifNull: ["$$v.sale_price", false] },
+                { $gt: ["$$v.price", 0] },
+                {
+                  $gte: [
+                    {
+                      $multiply: [
+                        {
+                          $divide: [
+                            { $subtract: ["$$v.price", "$$v.sale_price"] },
+                            "$$v.price",
+                          ],
+                        },
+                        100,
+                      ],
+                    },
+                    Number(minDiscount),
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      },
+    }),
   };
 
   return Object.keys(match).length ? match : {};
@@ -72,20 +118,37 @@ const buildMatchStage = (filters = {}) => {
 const buildSortStage = (sort, hasSearch) => {
   const sortStage = {};
 
-  // rank by text relevance when search query is present
+  // always sort by relevance first when search is present
   if (hasSearch) {
     sortStage.score = { $meta: "textScore" };
   }
 
-  if (sort) {
-    const order = sort.startsWith("-") ? -1 : 1;
-    const field = sort.replace(/^-/, "");
-    sortStage[field] = order;
-  }
+  switch (sort) {
+    case "relevance":
+      break;
 
-  // default sort only when no search and no sort param
-  if (!hasSearch && !sort) {
-    sortStage.createdAt = -1;
+    case "popularity":
+      sortStage["ratings.quantity"] = -1;
+      break;
+
+    case "newest":
+      sortStage.createdAt = -1;
+      break;
+
+    case "price_asc":
+      sortStage.min_price = 1;
+      break;
+
+    case "price_desc":
+      sortStage.min_price = -1;
+      break;
+
+    default:
+      //  default to newest unless search is active
+      if (!hasSearch) {
+        sortStage.createdAt = -1;
+      }
+      break;
   }
 
   return sortStage;
@@ -263,7 +326,7 @@ exports.createProduct = async (payload, files) => {
 exports.getAllProducts = async (query) => {
   const {
     page = 1,
-    limit = 10,
+    limit = 16,
     sort,
     search,
     color,
@@ -271,12 +334,13 @@ exports.getAllProducts = async (query) => {
     material,
     minPrice,
     maxPrice,
+    minDiscount,
   } = query;
 
   const match = buildMatchStage(query);
   const sortStage = buildSortStage(sort, !!search);
 
-  // variant filter conditions — must stay in sync with buildMatchStage variantElemMatch
+  // variant filter conditions to fetch single variant — must stay in sync with buildMatchStage variantElemMatch
   const variantCond = [];
   if (color) variantCond.push({ $eq: ["$$v.attributes.color", color] });
   if (size) variantCond.push({ $eq: ["$$v.attributes.size", size] });
@@ -284,8 +348,29 @@ exports.getAllProducts = async (query) => {
     variantCond.push({ $eq: ["$$v.attributes.material", material] });
   if (minPrice) variantCond.push({ $gte: ["$$v.price", Number(minPrice)] });
   if (maxPrice) variantCond.push({ $lte: ["$$v.price", Number(maxPrice)] });
+  if (minDiscount) {
+    variantCond.push({ $ifNull: ["$$v.sale_price", false] });
+    variantCond.push({ $gt: ["$$v.price", 0] });
+    variantCond.push({
+      $gte: [
+        {
+          $multiply: [
+            {
+              $divide: [
+                { $subtract: ["$$v.price", "$$v.sale_price"] },
+                "$$v.price",
+              ],
+            },
+            100,
+          ],
+        },
+        Number(minDiscount),
+      ],
+    });
+  }
   const filterExpr = variantCond.length > 0 ? { $and: variantCond } : true;
 
+  // aggregation pipeline
   const pipeline = [
     { $match: match },
     { $sort: sortStage },
@@ -717,7 +802,7 @@ exports.getProductDetails = async (productId) => {
   if (!reviews) {
     throw new AppError(400, "Failed to fetch reviews");
   }
-  
+
   return {
     ...product,
     reviews,

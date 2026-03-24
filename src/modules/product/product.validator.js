@@ -125,7 +125,11 @@ exports.getAllProductsValidator = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage("Limit must be between 1 and 100"),
-  query("sort").optional().isString().withMessage("Sort must be a string"),
+  query("sort")
+    .notEmpty()
+    .withMessage("The field sort is required")
+    .isIn(["relevance", "popularity", "price_asc", "price_desc", "newest"])
+    .withMessage("Sort must be a valid option"),
   query("search")
     .optional()
     .isString()
@@ -136,12 +140,6 @@ exports.getAllProductsValidator = [
     .optional()
     .isIn(["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"])
     .withMessage("Invalid status value"),
-  query("tags").optional().isArray().withMessage("Tags must be an array"),
-  query("tags.*")
-    .optional()
-    .isString()
-    .trim()
-    .withMessage("Each tag must be a string"),
   query("isFeatured")
     .optional()
     .isBoolean()

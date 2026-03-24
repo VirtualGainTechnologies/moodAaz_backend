@@ -134,6 +134,11 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    min_price: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     tags: [
       {
         type: String,
@@ -205,32 +210,60 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-// calculate & save total stock
-productSchema.pre("save", function () {
+// calculate & save total stock and minimum price from variants
+productSchema.pre("save", function (next) {
   if (!this.variants || this.variants.length === 0) {
     this.total_stock = 0;
+    this.min_price = 0;
     return;
   }
-  const totalStock = this.variants.reduce(
-    (sum, variant) => sum + (variant.stock || 0),
-    0,
+
+  this.total_stock = this.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+  this.min_price = Math.min(
+    ...this.variants.map((v) => v.sale_price || v.price),
   );
-  this.total_stock = totalStock;
+
+  next();
 });
 
-// text search index
+// INDEXES
+
+// TEXT SEARCH
 productSchema.index(
-  {
-    name: "text",
-    description: "text",
-  },
+  { name: "text", description: "text", tags: "text" },
   {
     default_language: "english",
-    weights: {
-      name: 10, // higher priority in search ranking
-      description: 5,
-    },
+    weights: { name: 10, description: 5, tags: 3 },
   },
 );
+
+// COMPOUND — category + status is the base of every query. sort field is always third.
+productSchema.index({ category_path: 1, status: 1, createdAt: -1 });
+productSchema.index({ category_path: 1, status: 1, min_price: 1 });
+productSchema.index({ category_path: 1, status: 1, "ratings.quantity": -1 });
+
+// COMPOUND — category + status + filters
+productSchema.index({ category_path: 1, status: 1, total_stock: 1 });
+productSchema.index({ category_path: 1, status: 1, is_featured: 1 });
+productSchema.index({ category_path: 1, status: 1, is_new_arrival: 1 });
+productSchema.index({ category_path: 1, status: 1, is_best_seller: 1 });
+productSchema.index({ category_path: 1, status: 1, is_signature: 1 });
+productSchema.index({ category_path: 1, status: 1, tags: 1 });
+productSchema.index({ category_path: 1, status: 1, "attributes.pattern": 1 });
+productSchema.index({ category_path: 1, status: 1, "attributes.occasion": 1 });
+
+// variant attributes — color + size always queried together
+productSchema.index({
+  category_path: 1,
+  status: 1,
+  "variants.attributes.color": 1,
+  "variants.attributes.size": 1,
+});
+
+// GLOBAL — when no category filter (homepage etc)
+productSchema.index({ status: 1, is_featured: 1, createdAt: -1 });
+productSchema.index({ status: 1, is_new_arrival: 1, createdAt: -1 });
+productSchema.index({ status: 1, min_price: 1 });
+productSchema.index({ status: 1, total_stock: 1 });
 
 module.exports = mongoose.model("product", productSchema);
