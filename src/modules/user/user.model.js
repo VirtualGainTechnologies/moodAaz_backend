@@ -97,12 +97,6 @@ const userSchema = new mongoose.Schema(
       min: [0, "Credits cannot be negative"],
       default: 0,
     },
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "product",
-      },
-    ],
     role: {
       type: String,
       default: "USER",

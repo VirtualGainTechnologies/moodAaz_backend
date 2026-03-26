@@ -28,8 +28,6 @@ router.post(
 );
 router.get(
   "/:productId",
-  authenticate,
-  authorize("USER"),
   getProductReviewsValidator,
   catchAsync("getProductReviews api", getProductReviews),
 );
