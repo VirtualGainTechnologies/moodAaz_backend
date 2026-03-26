@@ -117,7 +117,6 @@ const productSchema = new mongoose.Schema(
               default: "cm",
             },
           },
-          _id: false,
         }),
       ],
       validate: [

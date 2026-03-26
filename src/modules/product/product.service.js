@@ -766,69 +766,8 @@ exports.getProductDetails = async (productId) => {
     throw new AppError(404, "Product not found");
   }
 
-  // fetch latest 5 approved reviews with user name populated
-  const reviewsPipeline = [
-    {
-      $match: {
-        product_id: new mongoose.Types.ObjectId(productId),
-        status: "APPROVED",
-      },
-    },
-    {
-      $sort: { createdAt: -1 },
-    },
-    {
-      $limit: 5,
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "user_id",
-        foreignField: "_id",
-        as: "user",
-      },
-    },
-    {
-      $unwind: {
-        path: "$user",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $project: {
-        rating: 1,
-        title: 1,
-        comment: 1,
-        images: {
-          $map: {
-            input: "$images",
-            as: "img",
-            in: { $concat: [S3_BASE_URL, "/", "$$img"] },
-          },
-        },
-        votes: 1,
-        is_verified_purchase: 1,
-        user_name: {
-          $trim: {
-            input: { $concat: ["$user.first_name", " ", "$user.last_name"] },
-          },
-        },
-        user_id: "$user._id",
-      },
-    },
-  ];
-
-  const reviews = await reviewsRepo.aggregate(reviewsPipeline);
-  if (!reviews) {
-    throw new AppError(400, "Failed to fetch reviews");
-  }
-
-  const result = {
-    ...product,
-    reviews,
-  };
-  await cache("DETAILS").set(productId, result);
-  return result;
+  await cache("DETAILS").set(productId, product);
+  return product;
 };
 
 exports.updateProduct = async (productId, data) => {

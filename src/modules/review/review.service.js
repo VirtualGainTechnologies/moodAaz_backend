@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const repo = require("./review.repository");
+const cache = require("./review.cache");
 const productRepo = require("../product/product.repository");
 const AppError = require("../../utils/app-error");
 const {
@@ -17,6 +18,8 @@ const S3_BASE_URL =
   NODE_ENV === "production" ? S3_PROD_PUBLIC_BASE_URL : S3_TEST_PUBLIC_BASE_URL;
 
 const updateProductRating = async (productId, session) => {
+  // remove product ratings cache
+  await cache("RATINGS").invalidate(productId);
   const pipeline = [
     {
       $match: {
@@ -48,6 +51,90 @@ const updateProductRating = async (productId, session) => {
     throw new AppError(404, "Product not found");
   }
   return updated;
+};
+
+// cached separately, computed once & invalidated on any review change
+const getReviewSummary = async (productId) => {
+  const cached = await cache("RATINGS").get(productId);
+  if (cached) return cached;
+  const [summary] = await repo.aggregate([
+    {
+      $match: {
+        product_id: new mongoose.Types.ObjectId(productId),
+        status: "APPROVED",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        average: { $avg: "$rating" },
+        star5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
+        star4: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
+        star3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
+        star2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
+        star1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        total: 1,
+        average: { $round: ["$average", 1] },
+        breakdown: {
+          5: {
+            count: "$star5",
+            percentage: {
+              $round: [
+                { $multiply: [{ $divide: ["$star5", "$total"] }, 100] },
+                0,
+              ],
+            },
+          },
+          4: {
+            count: "$star4",
+            percentage: {
+              $round: [
+                { $multiply: [{ $divide: ["$star4", "$total"] }, 100] },
+                0,
+              ],
+            },
+          },
+          3: {
+            count: "$star3",
+            percentage: {
+              $round: [
+                { $multiply: [{ $divide: ["$star3", "$total"] }, 100] },
+                0,
+              ],
+            },
+          },
+          2: {
+            count: "$star2",
+            percentage: {
+              $round: [
+                { $multiply: [{ $divide: ["$star2", "$total"] }, 100] },
+                0,
+              ],
+            },
+          },
+          1: {
+            count: "$star1",
+            percentage: {
+              $round: [
+                { $multiply: [{ $divide: ["$star1", "$total"] }, 100] },
+                0,
+              ],
+            },
+          },
+        },
+      },
+    },
+  ]);
+
+  const result = summary ?? null;
+  if (result) await cache("RATINGS").set(productId, result);
+  return result;
 };
 
 exports.createReview = async (payload, session) => {
@@ -100,84 +187,72 @@ exports.createReview = async (payload, session) => {
 };
 
 exports.getProductReviews = async (productId, query) => {
-  const { page = 1, limit = 10, sort = "-createdAt" } = query;
+  const { page = 1, limit = 10 } = query;
   const skip = (Number(page) - 1) * Number(limit);
-  const sortStage = {
-    [sort.replace("-", "")]: sort.startsWith("-") ? -1 : 1,
-  };
 
-  const pipeline = [
-    {
-      $match: {
-        product_id: new mongoose.Types.ObjectId(productId),
+  const [reviewResult, summary] = await Promise.all([
+    repo.aggregate([
+      {
+        $match: {
+          product_id: new mongoose.Types.ObjectId(productId),
+          status: "APPROVED",
+        },
       },
-    },
-
-    {
-      $facet: {
-        metadata: [{ $count: "total" }],
-        reviews: [
-          { $sort: sortStage },
-          { $skip: skip },
-          { $limit: limit },
-          {
-            $lookup: {
-              from: "users",
-              localField: "user_id",
-              foreignField: "_id",
-              as: "user",
-            },
-          },
-          {
-            $unwind: {
-              path: "$user",
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $project: {
-              rating: 1,
-              title: 1,
-              comment: 1,
-              is_verified_purchase: 1,
-              votes: 1,
-              images: {
-                $map: {
-                  input: "$images",
-                  as: "img",
-                  in: { $concat: [S3_BASE_URL, "/", "$$img"] },
-                },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          reviews: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: Number(limit) },
+            {
+              $lookup: {
+                from: "users",
+                localField: "user_id",
+                foreignField: "_id",
+                as: "user",
               },
-              user_name: {
-                $trim: {
-                  input: {
-                    $concat: ["$user.first_name", " ", "$user.last_name"],
+            },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+            {
+              $project: {
+                rating: 1,
+                title: 1,
+                comment: 1,
+                is_verified_purchase: 1,
+                date: 1,
+                images: {
+                  $map: {
+                    input: "$images",
+                    as: "img",
+                    in: { $concat: [S3_BASE_URL, "/", "$$img"] },
+                  },
+                },
+                user: {
+                  _id: "$user._id",
+                  name: {
+                    $trim: {
+                      input: {
+                        $concat: ["$user.first_name", " ", "$user.last_name"],
+                      },
+                    },
                   },
                 },
               },
-              user_id: "$user._id",
-              date: 1,
             },
-          },
-        ],
-      },
-    },
-    {
-      $project: {
-        totalRecords: {
-          $ifNull: [{ $arrayElemAt: ["$metadata.total", 0] }, 0],
+          ],
         },
-        reviews: "$reviews",
       },
-    },
-  ];
-  const [result] = await repo.aggregate(pipeline);
-  return (
-    result || {
-      totalRecords: 0,
-      reviews: [],
-    }
-  );
+    ]),
+    getReviewSummary(productId),
+  ]);
+
+  const [{ metadata, reviews } = {}] = reviewResult;
+  return {
+    totalRecords: metadata?.[0]?.total ?? 0,
+    summary: summary,
+    reviews: reviews ?? [],
+  };
 };
 
 exports.updateReview = async (payload, session) => {
@@ -190,7 +265,6 @@ exports.updateReview = async (payload, session) => {
     files = [],
     removeImages = [],
   } = payload;
-  console.log("Payload for updateReview:", payload);
 
   // get existing review
   const existingReview = await repo.findOne(
