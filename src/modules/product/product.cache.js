@@ -33,7 +33,7 @@ const productCache = (type) => {
     }
 
     default:
-      throw new Error(`Invalid cache type: "${type}"`);
+      throw new Error(`Invalid product cache type: "${type}"`);
   }
 };
 
