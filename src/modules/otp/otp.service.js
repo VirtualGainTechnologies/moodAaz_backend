@@ -51,7 +51,7 @@ exports.sendEmailOtp = async (email, type) => {
     }
 
     const { subject, body } = template({ otp });
-    await sendEmail({ email, subject, body });
+    // await sendEmail({ email, subject, body });
 
     return {
       otpId: otpRecord._id,
