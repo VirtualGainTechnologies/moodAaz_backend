@@ -59,7 +59,6 @@ exports.sendEmailOtp = async (email, type) => {
       expiresIn: `${OTP_EXPIRY_MINUTES} minutes`,
     };
   } catch (err) {
-    console.log(err);
     if (otpRecordId) {
       await repo.deleteById(otpRecordId);
     }

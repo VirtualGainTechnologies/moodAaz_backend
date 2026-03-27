@@ -2,10 +2,13 @@ const service = require("./cart.service");
 
 exports.getCart = async (req, res) => {
   const cart = await service.getCart(req.user._id);
+  if (!cart) {
+    throw new AppError(404, "Failed to retrieve cart");
+  }
   res.status(200).json({
     message: "Cart retrieved successfully",
     error: false,
-    data: !cart ? { user_id: req.user._id, items: [] } : cart,
+    data: cart,
   });
 };
 
@@ -26,6 +29,9 @@ exports.updateQuantity = async (req, res) => {
     quantity: req.body.quantity,
     variantId: req.params.variantId,
   });
+  if (!cart) {
+    throw new AppError(400, "Failed to update item quantity");
+  }
 
   res.status(200).json({
     message: "Item quantity updated successfully",
@@ -59,11 +65,10 @@ exports.clearCart = async (req, res) => {
 
 exports.mergeGuestCart = async (req, res) => {
   const { guestItems } = req.body;
-  const isMerged = await service.mergeGuestCart(req.user._id, guestItems);
-  if (!isMerged) {
+  const cart = await service.mergeGuestCart(req.user._id, guestItems);
+  if (!cart) {
     throw new AppError(400, "Failed to merge guest cart");
   }
-  const cart = await service.getCart(req.user._id);
   res.status(200).json({
     message: "Guest cart merged successfully",
     error: false,

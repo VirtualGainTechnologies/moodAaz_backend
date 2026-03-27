@@ -39,7 +39,7 @@ const validateVariant = async (productId, variantId) => {
 const populateCartItems = async (items) => {
   if (items.length === 0) return [];
 
-  const products = await productRepo.find(
+  const products = await productRepo.findMany(
     { _id: { $in: [...new Set(items.map((i) => i.product_id))] } },
     "name slug variants variants_images image_attribute",
     { lean: true },
@@ -91,9 +91,14 @@ exports.getCart = async (userId) => {
   const cached = await cache("CART").get(userId);
   if (cached) return cached;
 
-  const cart = await repo.findOne({ user_id: userId }, "user_id items _id", {
-    lean: true,
-  });
+  const cart = await repo.updateOne(
+    { user_id: userId },
+    { $setOnInsert: { user_id: userId, items: [] } },
+    { upsert: true, new: true },
+  );
+  if (!cart) {
+    throw new AppError(404, "Failed to create or find cart");
+  }
 
   // populate product details for each cart item
   const populated = await populateCartItems(cart.items);
@@ -103,71 +108,82 @@ exports.getCart = async (userId) => {
   return result;
 };
 
-exports.addItem = async (userId, paylod) => {
-  const { productId, variantId, quantity } = paylod;
+exports.addItem = async (userId, payload) => {
+  const { productId, variantId, quantity } = payload;
   const { variant } = await validateVariant(productId, variantId);
-  const cart = await repo.updateOne(
+
+  // try updating existing item (increase quantity)
+  const updated = await repo.updateOne(
+    {
+      user_id: userId,
+      "items.variant_id": new mongoose.Types.ObjectId(variantId),
+    },
+    {
+      $inc: { "items.$.quantity": quantity },
+    },
+    { new: true },
+  );
+  if (updated) {
+    await cache("CART").invalidate(userId);
+    return updated;
+  }
+
+  // if item not found → push new item (also creates cart if not exists)
+  const newCart = await repo.updateOne(
     { user_id: userId },
-    { $setOnInsert: { user_id: userId, items: [] } },
+    {
+      $setOnInsert: { user_id: userId },
+      $push: {
+        items: {
+          product_id: productId,
+          variant_id: variantId,
+          sku: variant.sku,
+          quantity,
+        },
+      },
+    },
     { upsert: true, new: true },
   );
 
-  const existingIndex = cart.items.findIndex(
-    (item) =>
-      item.product_id.toString() === productId &&
-      item.variant_id.toString() === variantId,
-  );
-
-  if (existingIndex > -1) {
-    cart.items[existingIndex].quantity =
-      cart.items[existingIndex].quantity + quantity;
-  } else {
-    // new item — push
-    cart.items.push({
-      product_id: productId,
-      variant_id: variantId,
-      sku: variant.sku,
-      quantity,
-    });
+  if (!newCart) {
+    throw new AppError(400, "Failed to add item to cart");
   }
 
-  await repo.save(cart);
   await cache("CART").invalidate(userId);
-
   return exports.getCart(userId);
 };
 
 exports.updateQuantity = async (userId, payload) => {
   const { variantId, quantity } = payload;
-  const cart = await repo.findOne({ user_id: userId }, "items", { lean: true });
-  if (!cart) {
-    throw new AppError(404, "Cart not found");
-  }
 
-  const item = cart.items.find((i) => i.variant_id.toString() === variantId);
-  if (!item) {
+  const updated = await repo.updateOne(
+    {
+      user_id: userId,
+      "items._id": variantId,
+    },
+    {
+      $set: { "items.$.quantity": quantity },
+    },
+    { new: true },
+  );
+  if (!updated) {
     throw new AppError(404, "Item not found in cart");
   }
-  item.quantity = quantity;
-  await repo.save(cart);
-  await cache("CART").invalidate(userId);
 
+  await cache("CART").invalidate(userId);
   return exports.getCart(userId);
 };
 
 exports.removeItem = async (userId, variantId) => {
-  const cart = await repo.findOne({ user_id: userId }, "items", { lean: true });
-  if (!cart) {
+  const updated = await repo.updateOne(
+    { user_id: userId },
+    { $pull: { items: { _id: variantId } } },
+    { new: true },
+  );
+  if (!updated) {
     throw new AppError(404, "Cart not found");
   }
-
-  cart.items = cart.items.filter(
-    (item) => item.variant_id.toString() !== variantId,
-  );
-
-  await repo.save(cart);
   await cache("CART").invalidate(userId);
-
   return exports.getCart(userId);
 };
 
@@ -183,32 +199,76 @@ exports.clearCart = async (userId) => {
   await cache("CART").invalidate(userId);
 };
 
-// MERGE GUEST CART — called after login/register
 exports.mergeGuestCart = async (userId, guestItems = []) => {
-  if (guestItems.length === 0) return;
-  const cart = await repo.updateOne(
+  if (!guestItems.length) return;
+
+  // ensure cart exists
+  await repo.updateOne(
     { user_id: userId },
     { $setOnInsert: { user_id: userId, items: [] } },
     { upsert: true, new: true },
   );
 
-  for (const guestItem of guestItems) {
-    const existingIndex = cart.items.findIndex(
-      (item) =>
-        item.product_id.toString() === guestItem.product_id &&
-        item.variant_id.toString() === guestItem.variant_id,
+  for (const item of guestItems) {
+    const productId = new mongoose.Types.ObjectId(item.product_id);
+    const variantId = new mongoose.Types.ObjectId(item.variant_id);
+
+    // try updating existing item
+    const updatedCart = await repo.updateOne(
+      {
+        user_id: userId,
+        "items.variant_id": variantId,
+      },
+      {
+        $max: { "items.$.quantity": item.quantity },
+      },
+      { new: true },
     );
 
-    if (existingIndex > -1) {
-      cart.items[existingIndex].quantity = Math.max(
-        cart.items[existingIndex].quantity,
-        guestItem.quantity,
+    // if item not found → push new item
+    if (!updatedCart) {
+      await repo.updateOne(
+        { user_id: userId },
+        {
+          $push: {
+            items: {
+              product_id: productId,
+              variant_id: variantId,
+              sku: item.sku,
+              quantity: item.quantity,
+            },
+          },
+        },
+        { new: true },
       );
-    } else {
-      cart.items.push(guestItem);
     }
   }
 
-  await repo.save(cart);
   await cache("CART").invalidate(userId);
+  return exports.getCart(userId);
 };
+
+
+// sample payload for mergeGuestCart
+// {
+//   "guestItems": [
+//     {
+//       "product_id": "65f1a2b3c4d5e6f7890a1111",
+//       "variant_id": "65f1a2b3c4d5e6f7890a2222",
+//       "sku": "TSHIRT-BLACK-M",
+//       "quantity": 2
+//     },
+//     {
+//       "product_id": "65f1a2b3c4d5e6f7890a3333",
+//       "variant_id": "65f1a2b3c4d5e6f7890a4444",
+//       "sku": "JEANS-BLUE-32",
+//       "quantity": 1
+//     },
+//     {
+//       "product_id": "65f1a2b3c4d5e6f7890a5555",
+//       "variant_id": "65f1a2b3c4d5e6f7890a6666",
+//       "sku": "SHOES-WHITE-9",
+//       "quantity": 3
+//     }
+//   ]
+// }

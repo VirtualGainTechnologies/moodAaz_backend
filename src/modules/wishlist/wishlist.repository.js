@@ -1,45 +1,45 @@
-const Cart = require("./cart.model");
+const Wishlist = require("./wishlist.model");
 
 // create
 exports.create = (payload) => {
-  return Cart.create(payload);
+  return Wishlist.create(payload);
 };
 
 exports.createWithSession = (payload, session) => {
-  return Cart.create([payload], { session }).then((doc) => doc[0]);
+  return Wishlist.create([payload], { session }).then((doc) => doc[0]);
 };
 
 // get
 exports.findOne = (filter = {}, projection = null, options = {}) => {
-  return Cart.findOne(filter, projection, options);
+  return Wishlist.findOne(filter, projection, options);
 };
 
 exports.findById = (id, projection = null, options = {}) => {
-  return Cart.findById(id, projection, options);
+  return Wishlist.findById(id, projection, options);
 };
 
 exports.findMany = (filter = {}, projection = null, options = {}) => {
-  return Cart.find(filter, projection, (options = {}));
+  return Wishlist.find(filter, projection, options);
 };
 
 exports.aggregate = (pipeline = [], options = {}) => {
-  return Cart.aggregate(pipeline).option(options);
+  return Wishlist.aggregate(pipeline).option(options);
 };
 
 // update
 exports.updateById = (id, payload, options = {}) => {
-  return Cart.findByIdAndUpdate(id, payload, options);
+  return Wishlist.findByIdAndUpdate(id, payload, options);
 };
 
 exports.updateOne = (filter = {}, payload = {}, options = {}) => {
-  return Cart.findOneAndUpdate(filter, payload, options);
+  return Wishlist.findOneAndUpdate(filter, payload, options);
 };
 
 // delete
 exports.deleteById = (id, options = {}) => {
-  return Cart.findByIdAndDelete(id, options);
+  return Wishlist.findByIdAndDelete(id, options);
 };
 
 exports.deleteMany = (filter = {}, options = {}) => {
-  return Cart.deleteMany(filter, options);
+  return Wishlist.deleteMany(filter, options);
 };

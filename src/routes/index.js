@@ -8,6 +8,8 @@ const mediaRoutes = require("../modules/media/media.router");
 const productRoutes = require("../modules/product/product.router");
 const reviewRoutes = require("../modules/review/review.router");
 const userRoutes = require("../modules/user/user.router");
+const cartRoutes = require("../modules/cart/cart.router");
+const wishlistRoutes = require("../modules/wishlist/wishlist.router");
 
 // health check
 router.get("/health", (req, res) => {
@@ -25,5 +27,7 @@ router.use("/reviews", reviewRoutes);
 router.use("/otp", otpRoutes);
 router.use("/media", mediaRoutes);
 router.use("/user", userRoutes);
+router.use("/cart", cartRoutes);
+router.use("/wishlist", wishlistRoutes);
 
 module.exports = router;

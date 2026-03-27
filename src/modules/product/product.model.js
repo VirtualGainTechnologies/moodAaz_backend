@@ -106,16 +106,14 @@ const productSchema = new mongoose.Schema(
             default: 0,
             min: 0,
           },
-          weight_in_grams: Number,
+          weight_in_grams: {
+            type: Number,
+            min: 0,
+          },
           dimensions: {
-            length: Number,
-            width: Number,
-            height: Number,
-            unit: {
-              type: String,
-              enum: ["cm", "inch"],
-              default: "cm",
-            },
+            type: Map,
+            of: mongoose.Schema.Types.Mixed,
+            default: () => new Map(),
           },
         }),
       ],
@@ -210,7 +208,7 @@ const productSchema = new mongoose.Schema(
 );
 
 // calculate & save total stock and minimum price from variants
-productSchema.pre("save", function (next) {
+productSchema.pre("save", function () {
   if (!this.variants || this.variants.length === 0) {
     this.total_stock = 0;
     this.min_price = 0;
@@ -221,8 +219,6 @@ productSchema.pre("save", function (next) {
   this.min_price = Math.min(
     ...this.variants.map((v) => v.sale_price || v.price),
   );
-
-  next();
 });
 
 // INDEXES
@@ -232,7 +228,11 @@ productSchema.index(
   { name: "text", description: "text", tags: "text" },
   {
     default_language: "english",
-    weights: { name: 10, description: 5, tags: 3 },
+    weights: {
+      name: 10,
+      description: 5,
+      tags: 3,
+    },
   },
 );
 
@@ -247,14 +247,11 @@ productSchema.index({ category_path: 1, status: 1, is_featured: 1 });
 productSchema.index({ category_path: 1, status: 1, is_new_arrival: 1 });
 productSchema.index({ category_path: 1, status: 1, is_best_seller: 1 });
 productSchema.index({ category_path: 1, status: 1, is_signature: 1 });
-productSchema.index({ category_path: 1, status: 1, tags: 1 });
 productSchema.index({ category_path: 1, status: 1, "attributes.pattern": 1 });
 productSchema.index({ category_path: 1, status: 1, "attributes.occasion": 1 });
 
 // variant attributes — color + size always queried together
 productSchema.index({
-  category_path: 1,
-  status: 1,
   "variants.attributes.color": 1,
   "variants.attributes.size": 1,
 });
