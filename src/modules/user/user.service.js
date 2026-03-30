@@ -8,7 +8,7 @@ const {
 } = require("../otp/otp.service");
 const { parsePhone } = require("../../utils/phone");
 const repo = require("./user.repository");
-const { generateJwtToken } = require("../../utils/jwt");
+const { generateJwtToken, verifyJwtToken } = require("../../utils/jwt");
 
 const parseIdentifier = (identifier) => {
   const value = identifier.trim().toLowerCase();
@@ -111,4 +111,21 @@ exports.verifyAuthentication = async (payload) => {
     [type.toLowerCase()]: value,
     authType,
   };
+};
+
+exports.checkAuth = async (req) => {
+  const token = req.signedCookies?.user_token;
+  if (!token) return false;
+
+  const decoded = verifyJwtToken(token);
+  if (decoded.error) return false;
+
+  if (decoded.data.type !== "USER") return false;
+
+  const isAuthenticated = await repo.findOne({ token }, "_id role", {
+    lean: true,
+  });
+  if (!isAuthenticated) return false;
+
+  return true;
 };

@@ -43,3 +43,14 @@ exports.verifyAuthentication = async (req, res) => {
     data: result,
   });
 };
+
+exports.checkAuth = async (req, res) => {
+  const isAuthenticated = await service.checkAuth(req);
+  res.status(200).json({
+    message: "User is authenticated",
+    error: false,
+    data: {
+      isAuthenticated,
+    },
+  });
+};

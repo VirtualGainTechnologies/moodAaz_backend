@@ -5,6 +5,7 @@ const { catchAsync } = require("../../utils/catch-async");
 const {
   initiateAuthentication,
   verifyAuthentication,
+  checkAuth,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
@@ -24,4 +25,5 @@ router.post(
   catchAsync("verifyAuthentication api", verifyAuthentication),
 );
 
+router.get("/auth/check", catchAsync("checkAuth api", checkAuth));
 module.exports = router;
