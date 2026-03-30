@@ -545,6 +545,7 @@ exports.getAllProducts = async (query) => {
               "variant.thumbnail": 1,
               "variant.discount": 1,
               "variant.attributes": 1,
+              "variant._id": 1,
             },
           },
         ],
