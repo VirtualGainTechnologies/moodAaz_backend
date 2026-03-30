@@ -89,6 +89,7 @@ const populateCartItems = async (items) => {
         : 0,
       stock: variant.stock,
       attributes: Object.fromEntries(variant.attributes ?? []),
+      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
     };
   });
 };
@@ -251,7 +252,7 @@ exports.mergeGuestCart = async (userId, guestItems = []) => {
       _id: {
         $in: [
           ...new Set(
-            guestItems.map((i) => new mongoose.Types.ObjectId(i.product_id)),
+            guestItems.map((i) => new mongoose.Types.ObjectId(i.productId)),
           ),
         ],
       },
@@ -264,14 +265,14 @@ exports.mergeGuestCart = async (userId, guestItems = []) => {
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
   for (const item of guestItems) {
-    const productId = new mongoose.Types.ObjectId(item.product_id);
-    const variantId = new mongoose.Types.ObjectId(item.variant_id);
+    const productId = new mongoose.Types.ObjectId(item.productId);
+    const variantId = new mongoose.Types.ObjectId(item.variantId);
 
-    const product = productMap.get(item.product_id);
+    const product = productMap.get(item.productId);
     if (!product) continue; // skip unavailable products
 
     const variant = product.variants.find(
-      (v) => v._id.toString() === item.variant_id,
+      (v) => v._id.toString() === item.variantId,
     );
     if (!variant) continue; // skip unavailable variants
 
@@ -279,7 +280,7 @@ exports.mergeGuestCart = async (userId, guestItems = []) => {
 
     // find existing item in cart
     const existingItem = cart?.items?.find(
-      (i) => i.variant_id.toString() === item.variant_id,
+      (i) => i.variant_id.toString() === item.variantId,
     );
 
     if (existingItem) {
@@ -322,4 +323,116 @@ exports.mergeGuestCart = async (userId, guestItems = []) => {
 
   await cache("CART").invalidate(userId);
   return exports.getCart(userId);
+};
+
+exports.moveToWishlist = async (userId, variantId, wishlistService) => {
+  const cart = await repo.findOne(
+    {
+      user_id: userId,
+      "items.variant_id": new mongoose.Types.ObjectId(variantId),
+    },
+    { "items.$": 1 },
+    { lean: true },
+  );
+  if (!cart?.items?.length) {
+    throw new AppError(404, "Item not found in cart");
+  }
+  const cartItem = cart.items[0];
+
+  const wishlist = await wishlistService.addItem(userId, {
+    productId: cartItem.product_id.toString(),
+    variantId: cartItem.variant_id.toString(),
+  });
+  if (!wishlist) {
+    throw new AppError(400, "Failed to move item to wishlist");
+  }
+
+  const updated = await repo.updateOne(
+    { user_id: userId },
+    {
+      $pull: {
+        items: { variant_id: new mongoose.Types.ObjectId(variantId) },
+      },
+    },
+    { returnDocument: "after" },
+  );
+  if (!updated) {
+    throw new AppError(400, "Failed to move item from cart");
+  }
+
+  await cache("CART").invalidate(userId);
+  return exports.getCart(userId);
+};
+
+exports.getGuestCart = async (guestItems = []) => {
+  if (!guestItems.length) return { items: [] };
+
+  const products = await productRepo.findMany(
+    {
+      _id: {
+        $in: [
+          ...new Set(
+            guestItems.map((i) => new mongoose.Types.ObjectId(i.productId)),
+          ),
+        ],
+      },
+      status: "ACTIVE",
+    },
+    {
+      name: 1,
+      slug: 1,
+      variants: 1,
+      variants_images: 1,
+      image_attribute: 1,
+      status: 1,
+    },
+    { lean: true },
+  );
+
+  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+  const items = guestItems.map((guestItem) => {
+    const product = productMap.get(guestItem.productId);
+    if (!product) return { ...guestItem, unavailable: true };
+
+    const variant = product.variants.find(
+      (v) => v._id.toString() === guestItem.variantId,
+    );
+    if (!variant) return { ...guestItem, unavailable: true };
+
+    const attrValue = variant.attributes
+      ?.get?.(product.image_attribute)
+      ?.toLowerCase();
+    const imageEntry = product.variants_images?.find(
+      (vi) => vi.value === attrValue,
+    );
+    const thumbnail = imageEntry?.thumbnail
+      ? `${S3_BASE_URL}/${imageEntry.thumbnail}`
+      : null;
+
+    // cap quantity at available stock
+    const quantity = Math.min(guestItem.quantity, variant.stock);
+
+    return {
+      product_id: guestItem.productId,
+      variant_id: guestItem.variantId,
+      sku: guestItem.sku,
+      quantity,
+      name: product.name,
+      slug: product.slug,
+      thumbnail,
+      price: variant.price,
+      sale_price: variant.sale_price ?? null,
+      discount: variant.sale_price
+        ? Math.round(
+            ((variant.price - variant.sale_price) / variant.price) * 100,
+          )
+        : 0,
+      stock: variant.stock,
+      attributes: Object.fromEntries(variant.attributes ?? []),
+      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+    };
+  });
+
+  return { items };
 };

@@ -77,3 +77,16 @@ exports.mergeGuestWishlist = async (req, res) => {
     data: wishlist,
   });
 };
+
+exports.getGuestWishlist = async (req, res) => {
+  const { guestItems } = req.body;
+  const wishlist = await service.getGuestWishlist(guestItems);
+  if (!wishlist) {
+    throw new AppError(400, "Failed to retrieve guest wishlist");
+  }
+  res.status(200).json({
+    message: "Guest wishlist retrieved successfully",
+    error: false,
+    data: wishlist,
+  });
+};

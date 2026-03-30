@@ -29,7 +29,7 @@ exports.moveToCartValidator = [
     .withMessage("Invalid variant ID"),
 ];
 
-exports.mergeGuestWishlistValidator = [
+exports.guestWishlistValidator = [
   body("guestItems")
     .notEmpty()
     .withMessage("Guest items are required")

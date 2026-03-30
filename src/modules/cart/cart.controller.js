@@ -1,4 +1,5 @@
 const service = require("./cart.service");
+const wishlistService = require("../wishlist/wishlist.service");
 
 exports.getCart = async (req, res) => {
   const cart = await service.getCart(req.user._id);
@@ -71,6 +72,37 @@ exports.mergeGuestCart = async (req, res) => {
   }
   res.status(200).json({
     message: "Guest cart merged successfully",
+    error: false,
+    data: cart,
+  });
+};
+
+exports.moveToWishlist = async (req, res) => {
+  const { variantId } = req.params;
+  const cart = await service.moveToWishlist(
+    req.user._id,
+    variantId,
+    wishlistService,
+  );
+  if (!cart) {
+    throw new AppError(400, "Failed to move item to wishlist");
+  }
+
+  res.status(200).json({
+    message: "Item moved to wishlist successfully",
+    error: false,
+    data: cart,
+  });
+};
+
+exports.getGuestCart = async (req, res) => {
+  const { guestItems } = req.body;
+  const cart = await service.getGuestCart(guestItems);
+  if (!cart) {
+    throw new AppError(400, "Failed to retrieve guest cart");
+  }
+  res.status(200).json({
+    message: "Guest cart retrieved successfully",
     error: false,
     data: cart,
   });

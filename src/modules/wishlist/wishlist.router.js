@@ -8,13 +8,20 @@ const {
   removeItem,
   moveToCart,
   mergeGuestWishlist,
+  getGuestWishlist,
 } = require("./wishlist.controller");
 const {
   addItemValidator,
   removeItemValidator,
   moveToCartValidator,
-  mergeGuestWishlistValidator,
+  guestWishlistValidator,
 } = require("./wishlist.validator");
+
+router.post(
+  "/guest",
+  guestWishlistValidator,
+  catchAsync("getGuestWishlist api", getGuestWishlist),
+);
 
 router.use(authenticate);
 router.use(authorize("USER"));
@@ -33,7 +40,7 @@ router.post(
 );
 router.post(
   "/merge",
-  mergeGuestWishlistValidator,
+  guestWishlistValidator,
   catchAsync("mergeGuestWishlist api", mergeGuestWishlist),
 );
 

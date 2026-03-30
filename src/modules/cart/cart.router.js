@@ -7,15 +7,24 @@ const {
   removeItem,
   clearCart,
   mergeGuestCart,
+  moveToWishlist,
+  getGuestCart,
 } = require("./cart.controller");
 const {
   addItemValidator,
   updateQuantityValidator,
   removeItemValidator,
-  mergeGuestCartValidator,
+  guestCartValidator,
+  moveToWishlistValidator,
 } = require("./cart.validator");
 const { authenticate, authorize } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catch-async");
+
+router.post(
+  "/guest",
+  guestCartValidator,
+  catchAsync("getGuestCart api", getGuestCart),
+);
 
 router.use(authenticate);
 router.use(authorize("USER"));
@@ -35,8 +44,13 @@ router.delete(
 router.delete("/", catchAsync("clearCart api", clearCart));
 router.post(
   "/merge",
-  mergeGuestCartValidator,
+  guestCartValidator,
   catchAsync("mergeGuestCart api", mergeGuestCart),
+);
+router.post(
+  "/items/:variantId/move-to-wishlist",
+  moveToWishlistValidator,
+  catchAsync("moveToWishlist api", moveToWishlist),
 );
 
 module.exports = router;

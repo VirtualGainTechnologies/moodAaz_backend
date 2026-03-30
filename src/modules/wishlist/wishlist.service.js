@@ -80,7 +80,7 @@ exports.getWishlist = async (userId) => {
   const wishlist = await repo.updateOne(
     { user_id: userId },
     { $setOnInsert: { user_id: userId, items: [] } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
   if (!wishlist) {
     throw new AppError(404, "Failed to create or find wishlist");
@@ -113,8 +113,15 @@ exports.addItem = async (userId, payload) => {
   const productObjectId = new mongoose.Types.ObjectId(productId);
   const variantObjectId = new mongoose.Types.ObjectId(variantId);
 
-  // atomic insert (only if item doesn't exist)
-  const updatedWishlist = await repo.updateOne(
+  // ensure wishlist exists
+  await repo.updateOne(
+    { user_id: userId },
+    { $setOnInsert: { user_id: userId, items: [] } },
+    { upsert: true, returnDocument: "after" },
+  );
+
+  // atomic conditional push
+  const result = await repo.updateOne(
     {
       user_id: userId,
       items: {
@@ -127,7 +134,6 @@ exports.addItem = async (userId, payload) => {
       },
     },
     {
-      $setOnInsert: { user_id: userId },
       $push: {
         items: {
           product_id: productObjectId,
@@ -135,25 +141,28 @@ exports.addItem = async (userId, payload) => {
         },
       },
     },
-    {
-      upsert: true,
-      new: true,
-    },
+    { returnDocument: "after" },
   );
 
-  if (!updatedWishlist) {
+  if (!result) {
     throw new AppError(400, "Item already in wishlist");
   }
-  await cache("WISHLIST").invalidate(userId);
 
+  await cache("WISHLIST").invalidate(userId);
   return exports.getWishlist(userId);
 };
 
 exports.removeItem = async (userId, variantId) => {
   const updated = await repo.updateOne(
     { user_id: userId },
-    { $pull: { items: { _id: variantId } } },
-    { new: true },
+    {
+      $pull: {
+        items: {
+          variant_id: new mongoose.Types.ObjectId(variantId),
+        },
+      },
+    },
+    { returnDocument: "after" },
   );
   if (!updated) {
     throw new AppError(404, "Wishlist not found");
@@ -196,52 +205,140 @@ exports.moveToCart = async (userId, variantId, cartService) => {
     {
       $pull: { items: { variant_id: variantObjectId } },
     },
+    { returnDocument: "after" },
   );
 
   await cache("WISHLIST").invalidate(userId);
-  return {
-    wishlist: await exports.getWishlist(userId),
-    cart,
-  };
+  return await exports.getWishlist(userId);
 };
 
 exports.mergeGuestWishlist = async (userId, guestItems = []) => {
   if (!guestItems.length) return;
 
-  const items = guestItems.map((item) => ({
-    product_id: new mongoose.Types.ObjectId(item.product_id),
-    variant_id: new mongoose.Types.ObjectId(item.variant_id),
-  }));
-
-  await repo.updateOne(
+  const wishlist = await repo.updateOne(
     { user_id: userId },
-    {
-      $setOnInsert: { user_id: userId },
-      $addToSet: {
-        items: { $each: items }, // prevents duplicates because of itmes has only unique keys
-      },
-    },
-    { upsert: true, new: true },
+    { $setOnInsert: { user_id: userId, items: [] } },
+    { upsert: true },
   );
+
+  const products = await productRepo.findMany(
+    {
+      _id: {
+        $in: [
+          ...new Set(
+            guestItems.map((i) => new mongoose.Types.ObjectId(i.productId)),
+          ),
+        ],
+      },
+      status: "ACTIVE",
+    },
+    "_id variants._id",
+    { lean: true },
+  );
+
+  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+  for (const item of guestItems) {
+    const productId = new mongoose.Types.ObjectId(item.productId);
+    const variantId = new mongoose.Types.ObjectId(item.variantId);
+
+    const product = productMap.get(item.productId);
+    if (!product) continue; // skip unavailable products
+
+    const variant = product.variants.find(
+      (v) => v._id.toString() === item.variantId,
+    );
+    if (!variant) continue; // skip unavailable variants
+
+    // find existing item in cart
+    const existingItem = wishlist?.items?.find(
+      (i) => i.variant_id.toString() === item.variantId,
+    );
+    if (existingItem) continue; // skip if already in wishlist
+
+    const updated = await repo.updateOne(
+      { user_id: userId },
+      {
+        $push: {
+          items: {
+            product_id: productId,
+            variant_id: variantId,
+          },
+        },
+      },
+      { returnDocument: "after" },
+    );
+    if (!updated) {
+      throw new AppError(400, "Failed to update cart");
+    }
+  }
 
   await cache("WISHLIST").invalidate(userId);
   return exports.getWishlist(userId);
 };
 
-// sample payload for mergeGuestWishlist
-// {
-//   "guestItems": [
-//     {
-//       "product_id": "65f1a2b3c4d5e6f7890a1111",
-//       "variant_id": "65f1a2b3c4d5e6f7890a2222"
-//     },
-//     {
-//       "product_id": "65f1a2b3c4d5e6f7890a3333",
-//       "variant_id": "65f1a2b3c4d5e6f7890a4444"
-//     },
-//     {
-//       "product_id": "65f1a2b3c4d5e6f7890a5555",
-//       "variant_id": "65f1a2b3c4d5e6f7890a6666"
-//     }
-//   ]
-// }
+exports.getGuestWishlist = async (guestItems = []) => {
+  if (!guestItems.length) return { items: [] };
+
+  const productIds = [...new Set(guestItems.map((i) => i.productId))];
+
+  const products = await productRepo.findMany(
+    {
+      _id: { $in: productIds.map((id) => new mongoose.Types.ObjectId(id)) },
+      status: "ACTIVE",
+    },
+    {
+      name: 1,
+      slug: 1,
+      status: 1,
+      variants: 1,
+      variants_images: 1,
+      image_attribute: 1,
+      ratings: 1,
+    },
+    { lean: true },
+  );
+
+  const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+  const items = guestItems.map((guestItem) => {
+    const product = productMap.get(guestItem.productId);
+    if (!product) return { ...guestItem, unavailable: true };
+
+    const variant = product.variants.find(
+      (v) => v._id.toString() === guestItem.variantId,
+    );
+    if (!variant) return { ...guestItem, unavailable: true };
+
+    const attrValue = variant.attributes
+      ?.get?.(product.image_attribute)
+      ?.toLowerCase();
+    const imageEntry = product.variants_images?.find(
+      (vi) => vi.value === attrValue,
+    );
+    const thumbnail = imageEntry?.thumbnail
+      ? `${S3_BASE_URL}/${imageEntry.thumbnail}`
+      : null;
+
+    return {
+      product_id: guestItem.productId,
+      variant_id: guestItem.variantId,
+      name: product.name,
+      slug: product.slug,
+      thumbnail,
+      price: variant.price,
+      sale_price: variant.sale_price ?? null,
+      discount: variant.sale_price
+        ? Math.round(
+            ((variant.price - variant.sale_price) / variant.price) * 100,
+          )
+        : 0,
+      stock: variant.stock,
+      attributes: Object.fromEntries(variant.attributes ?? []),
+      ratings: product.ratings,
+      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+    };
+  });
+
+  return { items };
+};

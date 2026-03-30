@@ -38,18 +38,26 @@ exports.removeItemValidator = [
     .withMessage("Invalid variant ID"),
 ];
 
-exports.mergeGuestCartValidator = [
+exports.moveToWishlistValidator = [
+  param("variantId")
+    .notEmpty()
+    .withMessage("Variant ID is required")
+    .isMongoId()
+    .withMessage("Invalid variant ID"),
+];
+
+exports.guestCartValidator = [
   body("guestItems")
     .notEmpty()
     .withMessage("Guest items are required")
     .isArray({ min: 1, max: 50 })
     .withMessage("Guest items must be an array with 1 to 50 items"),
-  body("guestItems.*.product_id")
+  body("guestItems.*.productId")
     .notEmpty()
     .withMessage("Product ID is required in each item")
     .isMongoId()
     .withMessage("Invalid product ID in guest items"),
-  body("guestItems.*.variant_id")
+  body("guestItems.*.variantId")
     .notEmpty()
     .withMessage("Variant ID is required in each item")
     .isMongoId()
@@ -60,3 +68,4 @@ exports.mergeGuestCartValidator = [
     .isInt({ min: 1, max: 10 })
     .withMessage("Quantity must be between 1 and 10 in each item"),
 ];
+
