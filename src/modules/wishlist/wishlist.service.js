@@ -17,7 +17,7 @@ const populateWishlistItems = async (items) => {
   if (items.length === 0) return [];
   const products = await productRepo.findMany(
     { _id: { $in: [...new Set(items.map((i) => i.product_id))] } },
-    "name slug status variants variants_images image_attribute ratings",
+    "name slug status variants variants_images image_attribute ratings is_featured total_stock min_price date",
     {
       lean: true,
     },
@@ -52,23 +52,28 @@ const populateWishlistItems = async (items) => {
       : null;
 
     return {
-      product_id: item.product_id,
-      variant_id: item.variant_id,
-      addedAt: item.addedAt,
+      _id: item.product_id,
       name: product.name,
       slug: product.slug,
-      thumbnail,
-      price: variant.price,
-      sale_price: variant.sale_price ?? null,
-      discount: variant.sale_price
-        ? Math.round(
-            ((variant.price - variant.sale_price) / variant.price) * 100,
-          )
-        : 0,
-      stock: variant.stock,
-      attributes: Object.fromEntries(variant.attributes ?? []),
+      is_featured: product.is_featured,
       ratings: product.ratings,
-      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+      total_stock: product.total_stock,
+      min_price: product.min_price,
+      date: product.date,
+      variant: {
+        sku: variant.sku,
+        price: variant.price,
+        sale_price: variant.sale_price,
+        stock: variant.stock,
+        thumbnail: thumbnail,
+        discount: variant.sale_price
+          ? Math.round(
+              ((variant.price - variant.sale_price) / variant.price) * 100,
+            )
+          : 0,
+        attributes: variant.attributes,
+        _id: variant._id,
+      },
     };
   });
 };

@@ -47,7 +47,7 @@ const populateCartItems = async (items) => {
 
   const products = await productRepo.findMany(
     { _id: { $in: [...new Set(items.map((i) => i.product_id))] } },
-    "name slug variants variants_images image_attribute",
+    "name slug variants variants_images image_attribute status date ratings total_stock min_price",
     { lean: true },
   );
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
@@ -73,23 +73,29 @@ const populateCartItems = async (items) => {
       : null;
 
     return {
-      product_id: item.product_id,
-      variant_id: item.variant_id,
-      sku: item.sku,
-      quantity: item.quantity,
+      _id: item.product_id,
       name: product.name,
       slug: product.slug,
-      thumbnail,
-      price: variant.price,
-      sale_price: variant.sale_price ?? null,
-      discount: variant.sale_price
-        ? Math.round(
-            ((variant.price - variant.sale_price) / variant.price) * 100,
-          )
-        : 0,
-      stock: variant.stock,
-      attributes: Object.fromEntries(variant.attributes ?? []),
-      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+      is_featured: product.is_featured,
+      ratings: product.ratings,
+      total_stock: product.total_stock,
+      min_price: product.min_price,
+      date: product.date,
+      quantity: items.quantity,
+      variant: {
+        sku: variant.sku,
+        price: variant.price,
+        sale_price: variant.sale_price,
+        stock: variant.stock,
+        thumbnail: thumbnail,
+        discount: variant.sale_price
+          ? Math.round(
+              ((variant.price - variant.sale_price) / variant.price) * 100,
+            )
+          : 0,
+        attributes: variant.attributes,
+        _id: variant._id,
+      },
     };
   });
 };
@@ -385,6 +391,10 @@ exports.getGuestCart = async (guestItems = []) => {
       variants_images: 1,
       image_attribute: 1,
       status: 1,
+      date: 1,
+      ratings: 1,
+      total_stock: 1,
+      min_price: 1,
     },
     { lean: true },
   );
@@ -414,23 +424,29 @@ exports.getGuestCart = async (guestItems = []) => {
     const quantity = Math.min(guestItem.quantity, variant.stock);
 
     return {
-      product_id: guestItem.productId,
-      variant_id: guestItem.variantId,
-      sku: guestItem.sku,
-      quantity,
+      _id: guestItem.productId,
       name: product.name,
       slug: product.slug,
-      thumbnail,
-      price: variant.price,
-      sale_price: variant.sale_price ?? null,
-      discount: variant.sale_price
-        ? Math.round(
-            ((variant.price - variant.sale_price) / variant.price) * 100,
-          )
-        : 0,
-      stock: variant.stock,
-      attributes: Object.fromEntries(variant.attributes ?? []),
-      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+      is_featured: product.is_featured,
+      ratings: product.ratings,
+      total_stock: product.total_stock,
+      min_price: product.min_price,
+      date: product.date,
+      quantity,
+      variant: {
+        sku: variant.sku,
+        price: variant.price,
+        sale_price: variant.sale_price,
+        stock: variant.stock,
+        thumbnail: thumbnail,
+        discount: variant.sale_price
+          ? Math.round(
+              ((variant.price - variant.sale_price) / variant.price) * 100,
+            )
+          : 0,
+        attributes: variant.attributes,
+        _id: variant._id,
+      },
     };
   });
 
