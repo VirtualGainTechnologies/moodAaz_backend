@@ -358,5 +358,5 @@ exports.getGuestWishlist = async (guestItems = []) => {
     };
   });
 
-  return { items };
+  return items;
 };

@@ -450,5 +450,5 @@ exports.getGuestCart = async (guestItems = []) => {
     };
   });
 
-  return { items };
+  return items;
 };
