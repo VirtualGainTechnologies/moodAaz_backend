@@ -284,10 +284,13 @@ exports.getGuestWishlist = async (guestItems = []) => {
 
   const products = await productRepo.findMany(
     {
-      _id: { $in: productIds.map((id) => new mongoose.Types.ObjectId(id)) },
+      _id: {
+        $in: productIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
       status: "ACTIVE",
     },
     {
+      _id: 1,
       name: 1,
       slug: 1,
       status: 1,
@@ -295,6 +298,10 @@ exports.getGuestWishlist = async (guestItems = []) => {
       variants_images: 1,
       image_attribute: 1,
       ratings: 1,
+      is_featured: 1,
+      total_stock: 1,
+      min_price: 1,
+      min_sale_price: 1,
     },
     { lean: true },
   );
@@ -321,22 +328,28 @@ exports.getGuestWishlist = async (guestItems = []) => {
       : null;
 
     return {
-      product_id: guestItem.productId,
-      variant_id: guestItem.variantId,
+      _id: guestItem.productId,
       name: product.name,
       slug: product.slug,
-      thumbnail,
-      price: variant.price,
-      sale_price: variant.sale_price ?? null,
-      discount: variant.sale_price
-        ? Math.round(
-            ((variant.price - variant.sale_price) / variant.price) * 100,
-          )
-        : 0,
-      stock: variant.stock,
-      attributes: Object.fromEntries(variant.attributes ?? []),
+      is_featured: product.is_featured,
       ratings: product.ratings,
-      unavailable: product.status !== "ACTIVE" || variant.stock === 0,
+      total_stock: product.total_stock,
+      min_price: product.min_price,
+      date: product.date,
+      variant: {
+        sku: variant.sku,
+        price: variant.price,
+        sale_price: variant.sale_price,
+        stock: variant.stock,
+        thumbnail: thumbnail,
+        discount: variant.sale_price
+          ? Math.round(
+              ((variant.price - variant.sale_price) / variant.price) * 100,
+            )
+          : 0,
+        attributes: variant.attributes,
+        _id: variant._id,
+      },
     };
   });
 
