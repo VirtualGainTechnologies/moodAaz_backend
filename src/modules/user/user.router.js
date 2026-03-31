@@ -7,6 +7,8 @@ const {
   updateUser,
   initiateContactUpdate,
   verifyContactUpdate,
+  checkLogin,
+  logout,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
@@ -50,4 +52,13 @@ router.post(
   catchAsync("verifyContactUpdate api", verifyContactUpdate)
 );
 
+router.get(
+  "/check",
+  catchAsync("checkLogin api", checkLogin)
+);
+
+router.post(
+  "/auth/logout",
+  catchAsync("logout api", logout)
+);
 module.exports = router;

@@ -1,8 +1,9 @@
 const service = require("./user.service");
 const AppError = require("../../utils/app-error");
-const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
+const { COOKIE_EXPIRATION_MILLISECONDS, JWT_ACCESS_SECRET } = require("../../config/env");
 const { sendEmailOtp, sendMobileOtp, verifyOtp } = require("../otp/otp.service");
 const repo = require("./user.repository");
+const jwt = require("jsonwebtoken");
 
 exports.initiateAuthentication = async (req, res) => {
   const result = await service.initiateAuthentication({
@@ -24,17 +25,18 @@ exports.verifyAuthentication = async (req, res) => {
     ...req.body,
     country: req.country || "IN",
   });
+
   if (!result) {
     throw new AppError(400, "Failed to verify otp");
   }
+
   const { token, authType } = result;
 
   res.cookie("user_token", token, {
-    httpOnly: false, 
-    secure: "auto",
-    signed: true,
-    sameSite: "strict",
-    maxAge: COOKIE_EXPIRATION_MILLISECONDS * 1,
+    httpOnly: true,             
+    secure: false,             
+    sameSite: "lax",            
+    maxAge: COOKIE_EXPIRATION_MILLISECONDS,
   });
 
   delete result.token;
@@ -120,4 +122,100 @@ exports.verifyContactUpdate = async (req, res) => {
     error: false,
     data: updatedUser,
   });
+};
+
+exports.checkLogin = async (req, res) => {
+  try {
+    // Get token from normal cookies (NOT signed)
+    const token = req.cookies?.user_token;
+
+    if (!token) {
+      return res.status(200).json({
+        message: "User is not logged in",
+        error: false,
+        data: null,
+      });
+    }
+
+    // Verify JWT (FIXED SECRET)
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_ACCESS_SECRET);
+    } catch (err) {
+      return res.status(200).json({
+        message: "User is not logged in",
+        error: false,
+        data: null,
+      });
+    }
+
+    // Only allow USER
+    if (decoded.type !== "USER") {
+      return res.status(200).json({
+        message: "User is not logged in",
+        error: false,
+        data: null,
+      });
+    }
+
+    // Match token in DB
+    const authenticatedUser = await repo.findOne(
+      { token },
+      "_id role email phone",
+      { lean: true }
+    );
+
+    if (!authenticatedUser) {
+      return res.status(200).json({
+        message: "User is not logged in",
+        error: false,
+        data: null,
+      });
+    }
+
+    // Success
+    return res.status(200).json({
+      message: "User is logged in",
+      error: false,
+      data: authenticatedUser,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      message: "Something went wrong",
+      error: true,
+      data: null,
+    });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const token = req.cookies?.user_token;
+
+    if (token) {
+      // Invalidate token in DB (optional but recommended)
+      await repo.updateOne({ token }, { token: null });
+
+      // Clear the cookie
+      res.clearCookie("user_token", {
+        httpOnly: true,
+        secure: false, // set true in production with HTTPS
+        sameSite: "lax",
+      });
+    }
+
+    // Always return success, even if no token
+    return res.status(200).json({
+      message: "User logged out successfully",
+      error: false,
+      data: null,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Something went wrong during logout",
+      error: true,
+      data: null,
+    });
+  }
 };
