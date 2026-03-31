@@ -573,12 +573,60 @@ exports.getAllProducts = async (query) => {
 exports.getProductDetails = async (productId) => {
   const cached = await cache("DETAILS").get(productId);
   if (cached) return cached;
+
   const pipeline = [
-    // match by id and not deleted
     {
       $match: {
         _id: new mongoose.Types.ObjectId(productId),
       },
+    },
+
+    // populate category_path names
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category_path",
+        foreignField: "_id",
+        as: "category_path_data",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              slug: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    // category_path has ids in parent -> child order
+    {
+      $addFields: {
+        category_path: {
+          $map: {
+            input: "$category_path",
+            as: "catId",
+            in: {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: "$category_path_data",
+                    as: "cat",
+                    cond: { $eq: ["$$cat._id", "$$catId"] },
+                  },
+                },
+                0,
+              ],
+            },
+          },
+        },
+      },
+    },
+
+    // remove the unordered lookup result
+    {
+      $unset: "category_path_data",
     },
 
     // inject S3 URLs into all variant images
@@ -611,7 +659,6 @@ exports.getProductDetails = async (productId) => {
               $mergeObjects: [
                 "$$variant",
                 {
-                  // discount percentage
                   discount: {
                     $cond: {
                       if: {
@@ -644,8 +691,6 @@ exports.getProductDetails = async (productId) => {
                       else: 0,
                     },
                   },
-
-                  // inject images from variants_images based on image_attribute
                   images: {
                     $let: {
                       vars: {
@@ -723,14 +768,12 @@ exports.getProductDetails = async (productId) => {
           },
         },
 
-        // price range across all variants
         min_price: { $min: "$variants.price" },
         max_price: { $max: "$variants.price" },
         min_sale_price: { $min: "$variants.sale_price" },
       },
     },
 
-    // return full product data
     {
       $project: {
         name: 1,
@@ -757,15 +800,14 @@ exports.getProductDetails = async (productId) => {
         seo: 1,
         status: 1,
         category_id: 1,
+        category_path: 1,
         createdAt: 1,
       },
     },
   ];
 
   const [product] = await repo.aggregate(pipeline);
-  if (!product) {
-    throw new AppError(404, "Product not found");
-  }
+  if (!product) throw new AppError(404, "Product not found");
 
   await cache("DETAILS").set(productId, product);
   return product;
