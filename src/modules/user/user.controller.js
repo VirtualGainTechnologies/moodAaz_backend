@@ -40,7 +40,10 @@ exports.verifyAuthentication = async (req, res) => {
   res.status(200).json({
     message: `${authType == "REGISTER" ? "Registration" : "Login"} successful`,
     error: false,
-    data: result,
+    data: {
+      ...result,
+      isAuthenticated: true,
+    },
   });
 };
 
