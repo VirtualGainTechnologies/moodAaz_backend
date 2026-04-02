@@ -4,7 +4,6 @@ const mongoose = require("mongoose");
 
 const repo = require("./product.repository");
 const cache = require("./product.cache");
-const reviewsRepo = require("../review/review.repository");
 const categoryRepo = require("../category/category.repository");
 const AppError = require("../../utils/app-error");
 const {

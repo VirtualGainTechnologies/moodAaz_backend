@@ -51,4 +51,8 @@ module.exports = {
   // redis
   REDIS_URL: env("REDIS_URL"),
   CACHE_ENABLED: env("CACHE_ENABLED", "false").toLowerCase() === "true",
+
+  // shipping charges
+  FREE_SHIPPING_THRESHOLD: Number(env("FREE_SHIPPING_THRESHOLD", 0)),
+  SHIPPING_CHARGE: Number(env("SHIPPING_CHARGE", 0)),
 };

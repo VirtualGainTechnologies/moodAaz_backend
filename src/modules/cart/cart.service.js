@@ -8,6 +8,8 @@ const {
   S3_TEST_PUBLIC_BASE_URL,
   S3_PROD_PUBLIC_BASE_URL,
   NODE_ENV,
+  SHIPPING_CHARGE,
+  FREE_SHIPPING_THRESHOLD,
 } = require("../../config/env");
 
 const S3_BASE_URL =
@@ -52,7 +54,8 @@ const populateCartItems = async (items) => {
   );
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
-  return items.map((item) => {
+  let totalPrice = 0;
+  const cartItems = items.map((item) => {
     const product = productMap.get(item.product_id.toString());
     if (!product) return item;
 
@@ -72,6 +75,9 @@ const populateCartItems = async (items) => {
       ? `${S3_BASE_URL}/${images.thumbnail}`
       : null;
 
+    totalPrice += variant.sale_price
+      ? variant.sale_price * item.quantity
+      : variant.price * item.quantity;
     return {
       _id: item.product_id,
       name: product.name,
@@ -98,6 +104,12 @@ const populateCartItems = async (items) => {
       },
     };
   });
+
+  return {
+    items: cartItems,
+    totalPrice,
+    shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
+  };
 };
 
 exports.getCart = async (userId) => {
@@ -114,8 +126,10 @@ exports.getCart = async (userId) => {
   }
 
   // populate product details for each cart item
-  const populated = await populateCartItems(cart.items);
-  const result = { ...cart.toObject(), items: populated };
+  const { items, totalPrice, shippingCharge } = await populateCartItems(
+    cart.items,
+  );
+  const result = { ...cart.toObject(), items, totalPrice, shippingCharge };
 
   await cache("CART").set(userId, result);
   return result;
@@ -400,7 +414,7 @@ exports.getGuestCart = async (guestItems = []) => {
   );
 
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-
+  let totalPrice = 0;
   const items = guestItems.map((guestItem) => {
     const product = productMap.get(guestItem.productId);
     if (!product) return { ...guestItem, unavailable: true };
@@ -422,7 +436,9 @@ exports.getGuestCart = async (guestItems = []) => {
 
     // cap quantity at available stock
     const quantity = Math.min(guestItem.quantity, variant.stock);
-
+    totalPrice += variant.sale_price
+      ? variant.sale_price * quantity
+      : variant.price * quantity;
     return {
       _id: guestItem.productId,
       name: product.name,
@@ -450,5 +466,9 @@ exports.getGuestCart = async (guestItems = []) => {
     };
   });
 
-  return items;
+  return {
+    items,
+    totalPrice,
+    shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
+  };
 };
