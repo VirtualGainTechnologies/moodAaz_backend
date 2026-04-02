@@ -13,7 +13,7 @@ const logger = require("./utils/logger");
     await connectDB();
 
     // start server
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`App is running on port ${PORT}...`);
     });
 

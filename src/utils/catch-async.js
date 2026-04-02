@@ -52,7 +52,7 @@ exports.catchAsyncWithSession = (fnName, fn) => {
                 // signed: true,
                 // sameSite: "strict",
 
-                httpOnly: false, // or true if you don’t need JS access
+                httpOnly: true, // or true if you don’t need JS access
                 secure: isProduction, // must be true for HTTPS in production
                 signed: true,
                 sameSite: isProduction ? "none" : "lax", // 'none' for cross-site in prod, 'lax' for localhost

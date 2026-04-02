@@ -15,11 +15,11 @@ exports.registerSuperAdmin = async (req, res) => {
   }
 
   res.cookie("admin_token", result.token, {
-    httpOnly: false,
-    secure: "auto",
+    httpOnly: true,
+    secure: false,
     maxAge: COOKIE_EXPIRATION_MILLISECONDS * 1,
     signed: true,
-    sameSite: "strict",
+    sameSite: "lax",
   });
 
   res.status(200).json({
@@ -78,11 +78,11 @@ exports.verifyLoginOtp = async (req, res) => {
   }
 
   res.cookie("admin_token", result.token, {
-    httpOnly: false,
-    secure: "auto",
+    httpOnly: true,
+    secure: false,
     maxAge: COOKIE_EXPIRATION_MILLISECONDS * 1,
     signed: true,
-    sameSite: "strict",
+    sameSite: "lax",
   });
 
   delete result.token;

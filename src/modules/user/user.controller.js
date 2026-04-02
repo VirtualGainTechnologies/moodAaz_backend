@@ -28,11 +28,11 @@ exports.verifyAuthentication = async (req, res) => {
   const { token, authType } = result;
 
   res.cookie("user_token", token, {
-    httpOnly: false,
-    secure: "auto",
+    httpOnly: true,
+    secure: false,
     maxAge: COOKIE_EXPIRATION_MILLISECONDS * 1,
     signed: true,
-    sameSite: "strict",
+    sameSite: "lax",
   });
 
   delete result.token;

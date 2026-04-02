@@ -36,7 +36,7 @@ if (NODE_ENV === "development") {
 }
 app.use(
   cors({
-    origin: [CLIENT_BASE_URL1, CLIENT_BASE_URL2],
+    origin: [CLIENT_BASE_URL1, CLIENT_BASE_URL2, "http://192.168.1.38:3000", "http://192.168.1.38:3001"],
     credentials: true,
   }),
 );

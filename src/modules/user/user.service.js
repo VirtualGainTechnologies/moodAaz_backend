@@ -115,6 +115,7 @@ exports.verifyAuthentication = async (payload) => {
 
 exports.checkAuth = async (req) => {
   const token = req.signedCookies?.user_token;
+  console.log("the token is ....", token);
   if (!token) return false;
 
   const decoded = verifyJwtToken(token);
