@@ -87,6 +87,8 @@ exports.getGuestWishlist = async (req, res) => {
   res.status(200).json({
     message: "Guest wishlist retrieved successfully",
     error: false,
-    data: wishlist,
+    data: {
+      items: wishlist,
+    },
   });
 };
