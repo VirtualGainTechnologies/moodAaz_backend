@@ -199,7 +199,7 @@ exports.moveToCart = async (userId, variantId, cartService) => {
     productId: item.product_id.toString(),
     variantId: item.variant_id.toString(),
     quantity: 1,
-  });
+  }); 
   if (!cart) {
     throw new AppError(400, "Failed to move item to cart");
   }

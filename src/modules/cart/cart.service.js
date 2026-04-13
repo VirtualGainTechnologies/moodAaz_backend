@@ -55,6 +55,7 @@ const populateCartItems = async (items) => {
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
   let totalPrice = 0;
+  let totalSalePrice = 0;
   const cartItems = items.map((item) => {
     const product = productMap.get(item.product_id.toString());
     if (!product) return item;
@@ -75,9 +76,10 @@ const populateCartItems = async (items) => {
       ? `${S3_BASE_URL}/${images.thumbnail}`
       : null;
 
-    totalPrice += variant.sale_price
+    totalPrice += variant.price ? variant.price * item.quantity : 0;
+    totalSalePrice += variant.sale_price
       ? variant.sale_price * item.quantity
-      : variant.price * item.quantity;
+      : 0;
     return {
       _id: item.product_id,
       name: product.name,
@@ -108,6 +110,7 @@ const populateCartItems = async (items) => {
   return {
     items: cartItems,
     totalPrice,
+    totalSalePrice,
     shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
   };
 };
@@ -126,13 +129,15 @@ exports.getCart = async (userId) => {
   }
 
   // populate product details for each cart item
-  const { items, totalPrice, shippingCharge } = await populateCartItems(
-    cart.items,
-  );
+  const { items, totalPrice, totalSalePrice, shippingCharge } =
+    await populateCartItems(cart.items);
   const result = {
     ...cart.toObject(),
     items: items && items.length ? items : [],
     totalPrice: totalPrice ?? 0,
+    totalSalePrice: totalSalePrice ?? 0,
+    totalDiscount:
+      totalPrice && totalSalePrice ? totalPrice - totalSalePrice : 0,
     shippingCharge: shippingCharge ?? 0,
   };
 
