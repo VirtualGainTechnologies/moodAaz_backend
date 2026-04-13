@@ -129,7 +129,12 @@ exports.getCart = async (userId) => {
   const { items, totalPrice, shippingCharge } = await populateCartItems(
     cart.items,
   );
-  const result = { ...cart.toObject(), items, totalPrice, shippingCharge };
+  const result = {
+    ...cart.toObject(),
+    items: items && items.length ? items : [],
+    totalPrice: totalPrice ?? 0,
+    shippingCharge: shippingCharge ?? 0,
+  };
 
   await cache("CART").set(userId, result);
   return result;
