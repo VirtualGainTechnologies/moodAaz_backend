@@ -425,6 +425,7 @@ exports.getGuestCart = async (guestItems = []) => {
 
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
   let totalPrice = 0;
+  let totalSalePrice = 0;
   const items = guestItems.map((guestItem) => {
     const product = productMap.get(guestItem.productId);
     if (!product) return { ...guestItem, unavailable: true };
@@ -446,9 +447,8 @@ exports.getGuestCart = async (guestItems = []) => {
 
     // cap quantity at available stock
     const quantity = Math.min(guestItem.quantity, variant.stock);
-    totalPrice += variant.sale_price
-      ? variant.sale_price * quantity
-      : variant.price * quantity;
+    totalPrice += variant.price ? variant.price * quantity : 0;
+    totalSalePrice += variant.sale_price ? variant.sale_price * quantity : 0;
     return {
       _id: guestItem.productId,
       name: product.name,
@@ -479,6 +479,9 @@ exports.getGuestCart = async (guestItems = []) => {
   return {
     items,
     totalPrice,
+    totalSalePrice,
+    totalDiscount:
+      totalPrice && totalSalePrice ? totalPrice - totalSalePrice : 0,
     shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
   };
 };
