@@ -129,3 +129,14 @@ exports.checkAuth = async (req) => {
 
   return true;
 };
+
+exports.logout = async (userId) => {
+  if (!userId) {
+    throw new AppError(400, "User id is missing");
+  }
+  return await repo.updateById(
+    userId,
+    { token: "" },
+    { returnDocument: "after" },
+  );
+};

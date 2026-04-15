@@ -57,3 +57,18 @@ exports.checkAuth = async (req, res) => {
     },
   });
 };
+
+exports.logout = async (req, res) => {
+  const userId = req?.user?._id;
+  const result = await service.logout(userId);
+  if (!result) {
+    throw new AppError(400, "Logout failed");
+  }
+
+  res.clearCookie("user_token");
+  res.status(200).json({
+    message: "Logout successful",
+    error: false,
+    data: null,
+  });
+};
