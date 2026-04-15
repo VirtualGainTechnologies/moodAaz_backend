@@ -89,7 +89,7 @@ const populateCartItems = async (items) => {
       total_stock: product.total_stock,
       min_price: product.min_price,
       date: product.date,
-      quantity: items.quantity,
+      quantity: item.quantity,
       variant: {
         sku: variant.sku,
         price: variant.price,
