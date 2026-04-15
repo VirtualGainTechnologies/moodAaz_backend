@@ -69,6 +69,8 @@ exports.logout = async (req, res) => {
   res.status(200).json({
     message: "Logout successful",
     error: false,
-    data: null,
+    data: {
+      isAuthenticated: false,
+    },
   });
 };
