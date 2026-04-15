@@ -1,11 +1,12 @@
 const router = require("express").Router();
 
-const { getIpAndLocation } = require("../../middlewares");
+const { getIpAndLocation, authenticate } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catch-async");
 const {
   initiateAuthentication,
   verifyAuthentication,
   checkAuth,
+  logout,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
@@ -26,4 +27,6 @@ router.post(
 );
 
 router.get("/auth/check", catchAsync("checkAuth api", checkAuth));
+
+router.post("/auth/logout", authenticate, catchAsync("logout api", logout));
 module.exports = router;
