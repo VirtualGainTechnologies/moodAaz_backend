@@ -111,7 +111,8 @@ const populateCartItems = async (items) => {
     items: cartItems,
     totalPrice,
     totalSalePrice,
-    shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
+    shippingCharge:
+      totalSalePrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
   };
 };
 
@@ -482,6 +483,7 @@ exports.getGuestCart = async (guestItems = []) => {
     totalSalePrice,
     totalDiscount:
       totalPrice && totalSalePrice ? totalPrice - totalSalePrice : 0,
-    shippingCharge: totalPrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
+    shippingCharge:
+      totalSalePrice > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE,
   };
 };
