@@ -3,7 +3,7 @@ const profileService = require("./profile.service");
 const AppError = require("../../utils/app-error");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
-// AUTH 
+// AUTH
 exports.initiateAuthentication = async (req, res) => {
   const result = await authService.initiateAuthentication({
     ...req.body,
@@ -78,3 +78,19 @@ exports.logout = async (req, res) => {
 };
 
 // PROFILE
+exports.getUserProfile = async (req, res) => {
+  const user = await profileService.getUserProfile(req.user._id);
+  if (!user) {
+    throw new AppError(400, "Failed to get user profile");
+  }
+
+  const isProfileIncomplete = !user?.first_name || !user?.last_name;
+
+  res.status(200).json({
+    message: isProfileIncomplete
+      ? "Please complete your profile details first"
+      : "User profile fetched successfully",
+    error: false,
+    data: user,
+  });
+};

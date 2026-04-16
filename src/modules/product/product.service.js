@@ -999,6 +999,5 @@ exports.deleteProduct = async (productId) => {
   if (!updated) {
     throw new AppError(400, "Failed to update product");
   }
-
   return true;
 };
