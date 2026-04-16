@@ -56,8 +56,8 @@ exports.checkAuth = async (req, res) => {
   const isAuthenticated = await authService.checkAuth(req);
 
   res.status(200).json({
-    message: "User is authenticated",
-    error: false,
+    success: true,
+    message: isAuthenticated ? "Logged in" : "Not logged in",
     data: { isAuthenticated },
   });
 };
