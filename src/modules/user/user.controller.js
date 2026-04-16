@@ -3,15 +3,22 @@ const profileService = require("./profile.service");
 const AppError = require("../../utils/app-error");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
-// AUTH 
+// SAFE USER ID HELPER
+const getUserId = (req) => {
+  if (!req.user || !req.user._id) {
+    throw new AppError(401, "Unauthorized");
+  }
+  return req.user._id;
+};
+
+// AUTH
+
 exports.initiateAuthentication = async (req, res) => {
   const result = await authService.initiateAuthentication({
     ...req.body,
     country: req.country || "IN",
   });
-  if (!result) {
-    throw new AppError(400, "Failed to send otp");
-  }
+
   res.status(200).json({
     message: "OTP sent successfully",
     error: false,
@@ -24,26 +31,22 @@ exports.verifyAuthentication = async (req, res) => {
     ...req.body,
     country: req.country || "IN",
   });
-  if (!result) {
-    throw new AppError(400, "Failed to verify otp");
-  }
-  const { token, authType } = result;
+
+  const { token, ...safeResult } = result;
 
   res.cookie("user_token", token, {
-    httpOnly: false,
-    secure: "auto",
-    maxAge: COOKIE_EXPIRATION_MILLISECONDS * 1,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: COOKIE_EXPIRATION_MILLISECONDS,
     signed: true,
     sameSite: "strict",
   });
 
-  delete result.token;
-
   res.status(200).json({
-    message: `${authType == "REGISTER" ? "Registration" : "Login"} successful`,
+    message: `${result.authType === "REGISTER" ? "Registration" : "Login"} successful`,
     error: false,
     data: {
-      ...result,
+      ...safeResult,
       isAuthenticated: true,
     },
   });
@@ -51,30 +54,116 @@ exports.verifyAuthentication = async (req, res) => {
 
 exports.checkAuth = async (req, res) => {
   const isAuthenticated = await authService.checkAuth(req);
+
   res.status(200).json({
     message: "User is authenticated",
     error: false,
-    data: {
-      isAuthenticated,
-    },
+    data: { isAuthenticated },
   });
 };
 
 exports.logout = async (req, res) => {
-  const userId = req?.user?._id;
-  const result = await authService.logout(userId);
-  if (!result) {
-    throw new AppError(400, "Logout failed");
-  }
+  const userId = getUserId(req);
+
+  await authService.logout(userId);
 
   res.clearCookie("user_token");
+
   res.status(200).json({
     message: "Logout successful",
     error: false,
-    data: {
-      isAuthenticated: false,
-    },
+    data: { isAuthenticated: false },
   });
 };
 
-// PROFILE
+// PROFILE (EMAIL / PHONE / ADDRESS)
+
+// 1. EMAIL INITIATE
+exports.updateEmail = async (req, res) => {
+  const result = await profileService.initiateEmailUpdate(
+    getUserId(req),
+    req.body.email
+  );
+
+  res.status(200).json({
+    message: "OTP sent to email",
+    error: false,
+    data: result,
+  });
+};
+
+// 2. EMAIL VERIFY
+exports.verifyEmail = async (req, res) => {
+  const result = await profileService.verifyEmailUpdate(
+    getUserId(req),
+    req.body.otpId,
+    req.body.otp,
+    req.body.email
+  );
+
+  res.status(200).json({
+    message: "Email verified successfully",
+    error: false,
+    data: result,
+  });
+};
+
+// 3. PHONE INITIATE
+exports.updatePhone = async (req, res) => {
+  const result = await profileService.initiatePhoneUpdate(
+    getUserId(req),
+    req.body.identifier,
+    req.country || "IN"
+  );
+
+  res.status(200).json({
+    message: "OTP sent to phone",
+    error: false,
+    data: result,
+  });
+};
+
+// 4. PHONE VERIFY
+exports.verifyPhone = async (req, res) => {
+  const result = await profileService.verifyPhoneUpdate(
+    getUserId(req),
+    req.body.otpId,
+    req.body.otp,
+    req.body.identifier,
+    req.country || "IN"
+  );
+
+  res.status(200).json({
+    message: "Phone verified successfully",
+    error: false,
+    data: result,
+  });
+};
+
+// 5. ADD ADDRESS
+exports.addAddress = async (req, res) => {
+  const result = await profileService.addAddress(
+    getUserId(req),
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Address added successfully",
+    error: false,
+    data: result,
+  });
+};
+
+// 6. UPDATE ADDRESS
+exports.updateAddress = async (req, res) => {
+  const result = await profileService.updateAddress(
+    getUserId(req),
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Address updated successfully",
+    error: false,
+    data: result,
+  });
+};

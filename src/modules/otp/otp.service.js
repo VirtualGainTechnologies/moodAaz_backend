@@ -89,10 +89,10 @@ exports.sendMobileOtp = async (phoneCode, phone) => {
     // sms message
     const message = `Your OTP for moodaaz is: ${otp} VBIPVT`;
     const mobileNumber = `+${phoneCode}${phone}`;
-    await sendSMS({
-      mobileNumber,
-      message,
-    });
+    // await sendSMS({
+    //   mobileNumber,
+    //   message,
+    // });
 
     return {
       otpId: otpRecord._id,
