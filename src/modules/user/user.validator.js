@@ -79,10 +79,12 @@ exports.verifyEmailValidator = [
 // Phone
 
 exports.updatePhoneValidator = [
-  body("identifier")
+  body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
     .trim()
+    .isLength({ min: 10 })
+    .withMessage("Phone number too short")
     .custom((value) => {
       if (!validator.isMobilePhone(value, "any")) {
         throw new Error("Invalid phone number");
@@ -92,10 +94,12 @@ exports.updatePhoneValidator = [
 ];
 
 exports.verifyPhoneValidator = [
-  body("identifier")
+  body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
     .trim()
+    .isLength({ min: 10 })
+    .withMessage("Phone number too short")
     .custom((value) => {
       if (!validator.isMobilePhone(value, "any")) {
         throw new Error("Invalid phone number");

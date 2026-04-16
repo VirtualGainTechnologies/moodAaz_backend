@@ -112,7 +112,7 @@ exports.verifyEmail = async (req, res) => {
 exports.updatePhone = async (req, res) => {
   const result = await profileService.initiatePhoneUpdate(
     getUserId(req),
-    req.body.identifier,
+    req.body.phone,
     req.country || "IN"
   );
 
@@ -129,7 +129,7 @@ exports.verifyPhone = async (req, res) => {
     getUserId(req),
     req.body.otpId,
     req.body.otp,
-    req.body.identifier,
+    req.body.phone,
     req.country || "IN"
   );
 

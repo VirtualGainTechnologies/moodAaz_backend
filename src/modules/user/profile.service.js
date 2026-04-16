@@ -6,9 +6,11 @@ const {
   verifyOtp,
 } = require("../otp/otp.service");
 const { parsePhone } = require("../../utils/phone");
-const validator = require("validator");
 
+// =========================
 // EMAIL
+// =========================
+
 exports.initiateEmailUpdate = async (userId, email) => {
   email = email.toLowerCase().trim();
 
@@ -23,6 +25,7 @@ exports.initiateEmailUpdate = async (userId, email) => {
   if (!result) {
     throw new AppError(400, "Failed to send email OTP");
   }
+
   return result;
 };
 
@@ -53,15 +56,19 @@ exports.verifyEmailUpdate = async (userId, otpId, otp, email) => {
   if (!user) {
     throw new AppError(400, "Failed to update email");
   }
+
   return user;
 };
 
-// PHONE
-exports.initiatePhoneUpdate = async (userId, identifier, country) => {
+// =========================
+// PHONE (FIXED)
+// =========================
+
+exports.initiatePhoneUpdate = async (userId, phone, country) => {
   let parsed;
 
   try {
-    parsed = parsePhone(identifier, country);
+    parsed = parsePhone(phone, country);
   } catch {
     throw new AppError(400, "Invalid phone number");
   }
@@ -81,6 +88,7 @@ exports.initiatePhoneUpdate = async (userId, identifier, country) => {
   if (!result) {
     throw new AppError(400, "Failed to send phone OTP");
   }
+
   return result;
 };
 
@@ -88,13 +96,13 @@ exports.verifyPhoneUpdate = async (
   userId,
   otpId,
   otp,
-  identifier,
+  phone,
   country
 ) => {
   let parsed;
 
   try {
-    parsed = parsePhone(identifier, country);
+    parsed = parsePhone(phone, country);
   } catch {
     throw new AppError(400, "Invalid phone number");
   }
@@ -104,11 +112,13 @@ exports.verifyPhoneUpdate = async (
   if (!verified) {
     throw new AppError(400, "Invalid OTP");
   }
+
   const existing = await repo.findOne({ phone: parsed.input });
 
   if (existing && existing._id.toString() !== userId) {
     throw new AppError(409, "Phone already in use");
   }
+
   const user = await repo.updateById(
     userId,
     {
@@ -122,8 +132,13 @@ exports.verifyPhoneUpdate = async (
   if (!user) {
     throw new AppError(400, "Failed to update phone");
   }
+
   return user;
 };
+
+// =========================
+// ADDRESS
+// =========================
 
 // ADD ADDRESS
 exports.addAddress = async (userId, addressData) => {
@@ -138,6 +153,7 @@ exports.addAddress = async (userId, addressData) => {
   if (!user) {
     throw new AppError(400, "Failed to add address");
   }
+
   return user;
 };
 
@@ -156,5 +172,6 @@ exports.updateAddress = async (userId, addressData) => {
   if (!user) {
     throw new AppError(400, "Failed to update address");
   }
+
   return user;
 };
