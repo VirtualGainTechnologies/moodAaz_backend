@@ -7,6 +7,7 @@ const {
   updateProduct,
   getProductDetails,
   getAllProducts,
+  getAdminProductList,
 } = require("./product.controller");
 const {
   createProductValidator,
@@ -29,7 +30,7 @@ router.get(
 
 // admin
 router.post(
-  "/create",
+  "/admin/create",
   authenticate,
   authorize("SUPER-ADMIN"),
   multer.any(),
@@ -37,11 +38,17 @@ router.post(
   catchAsync("createProduct api", createProduct),
 );
 router.put(
-  "/:id",
+  "/admin/:id",
   authenticate,
   authorize("SUPER-ADMIN"),
   updateProductValidator,
   catchAsync("updateProduct api", updateProduct),
+);
+router.get(
+  "/admin/list",
+  authenticate,
+  authorize("SUPER-ADMIN"),
+  catchAsync("getAdminProductList api", getAdminProductList),
 );
 
 module.exports = router;

@@ -52,3 +52,18 @@ exports.updateProduct = async (req, res) => {
     data: product,
   });
 };
+
+exports.getAdminProductList = async (req, res) => {
+  const { products, total } = await service.getAdminProductList(req.query);
+  if (!products) {
+    throw new AppError(400, "Failed to fetch admin products");
+  }
+  res.status(200).json({
+    message: "Admin product list fetched successfully",
+    error: false,
+    data: {
+      total,
+      products,
+    },
+  });
+};

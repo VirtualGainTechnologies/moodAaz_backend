@@ -838,3 +838,105 @@ exports.updateProduct = async (productId, data) => {
   await cache("LIST").invalidate();
   return updated;
 };
+
+exports.getAdminProductList = async (query) => {
+  let {
+    page = 1,
+    limit = 10,
+    search,
+    categoryId,
+    minPrice,
+    maxPrice,
+    is_featured,
+    sort,
+  } = query;
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+  const skip = (page - 1) * limit;
+
+  const match = {
+    status: "ACTIVE",
+    ...(search && { name: { $regex: search, $options: "i" } }),
+    ...(categoryId && { category_id: new mongoose.Types.ObjectId(categoryId) }),
+    ...(is_featured !== undefined && { is_featured: is_featured === "true" }),
+    ...(minPrice || maxPrice
+      ? {
+          "variants.price": {
+            ...(minPrice ? { $gte: Number(minPrice) } : {}),
+            ...(maxPrice ? { $lte: Number(maxPrice) } : {}),
+          },
+        }
+      : {}),
+  };
+
+  let sortOption = { createdAt: -1 };
+  if (sort === "price_asc") sortOption = { min_price: 1 };
+  if (sort === "price_desc") sortOption = { min_price: -1 };
+  if (sort === "newest") sortOption = { createdAt: -1 };
+
+  // ─────────────────────────────────────────────
+  const pipeline = [
+    { $match: match },
+    {
+      $addFields: {
+        min_price: { $min: "$variants.price" },
+        total_stock: { $sum: "$variants.stock" },
+      },
+    },
+
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $sort: sortOption },
+          { $skip: skip },
+          { $limit: limit },
+
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category_id",
+              foreignField: "_id",
+              as: "category",
+            },
+          },
+          {
+            $unwind: {
+              path: "$category",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slug: 1,
+              brand: 1,
+              min_price: 1,
+              total_stock: 1,
+              "ratings.average": 1,
+              variants_images: 1,
+              variants: 1,
+              category: {
+                _id: 1,
+                name: 1,
+              },
+              createdAt: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        total: { $arrayElemAt: ["$metadata.total", 0] },
+      },
+    },
+  ];
+
+  const result = await repo.aggregate(pipeline);
+  const total = result[0]?.total || 0;
+  const products = result[0]?.data || [];
+
+  return { products, total };
+};
