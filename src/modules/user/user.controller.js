@@ -167,3 +167,31 @@ exports.updateAddress = async (req, res) => {
     data: result,
   });
 };
+
+// 7. ADD BASIC DETAILS
+exports.addBasicDetails = async (req, res) => {
+  const result = await profileService.addBasicDetails(
+    getUserId(req),
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Details added successfully",
+    error: false,
+    data: result,
+  });
+};
+
+// 8. UPDATE BASIC DETAILS
+exports.updateBasicDetails = async (req, res) => {
+  const result = await profileService.updateBasicDetails(
+    getUserId(req),
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Details updated successfully",
+    error: false,
+    data: result,
+  });
+};

@@ -14,6 +14,8 @@ const {
   verifyPhone,
   addAddress,
   updateAddress,
+  addBasicDetails,
+  updateBasicDetails,
 } = require("./user.controller");
 
 const {
@@ -25,6 +27,8 @@ const {
   verifyPhoneValidator,
   addAddressValidator,
   updateAddressValidator,
+  addBasicDetailsValidator,
+  updateBasicDetailsValidator,
 } = require("./user.validator");
 
 // auth
@@ -42,8 +46,22 @@ router.post(
   catchAsync("verify auth", verifyAuthentication)
 );
 
-// EMAIL UPDATE
+// BASIC DETAILS
+router.post(
+  "/profile/details/add",
+  authenticate,
+  addBasicDetailsValidator,
+  catchAsync("add basic details", addBasicDetails)
+);
 
+router.post(
+  "/profile/details/update",
+  authenticate,
+  updateBasicDetailsValidator,
+  catchAsync("update basic details", updateBasicDetails)
+);
+
+// EMAIL UPDATE
 router.post(
   "/contact/email/update",
   authenticate,
@@ -59,7 +77,6 @@ router.post(
 );
 
 // PHONE UPDATE
-
 router.post(
   "/contact/phone/update",
   authenticate,

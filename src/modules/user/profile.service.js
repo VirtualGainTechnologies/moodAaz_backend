@@ -175,3 +175,40 @@ exports.updateAddress = async (userId, addressData) => {
 
   return user;
 };
+
+// ADD DETAILS
+exports.addBasicDetails = async (userId, data) => {
+  const { first_name, last_name, gender } = data;
+
+  const user = await repo.updateById(
+    userId,
+    {
+      first_name,
+      last_name,
+      gender,
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    throw new AppError(400, "Failed to add details");
+  }
+
+  return user;
+};
+
+// UPDATE DETAILS
+exports.updateBasicDetails = async (userId, data) => {
+  const updateData = {};
+
+  if (data.first_name) updateData.first_name = data.first_name;
+  if (data.last_name) updateData.last_name = data.last_name;
+  if (data.gender) updateData.gender = data.gender;
+
+  const user = await repo.updateById(userId, updateData, { new: true });
+
+  if (!user) {
+    throw new AppError(400, "Failed to update details");
+  }
+  return user;
+};

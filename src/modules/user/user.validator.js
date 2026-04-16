@@ -43,8 +43,44 @@ exports.verifyAuthenticationValidator = [
     .withMessage("Invalid auth type"),
 ];
 
-// Email
+// BASIC DETAILS
 
+exports.addBasicDetailsValidator = [
+  body("first_name")
+    .notEmpty()
+    .withMessage("First name is required")
+    .isString()
+    .trim(),
+
+  body("last_name")
+    .notEmpty()
+    .withMessage("Last name is required")
+    .isString()
+    .trim(),
+
+  body("gender")
+    .notEmpty()
+    .withMessage("Gender is required")
+    .isIn(["male", "female", "other"])
+    .withMessage("Invalid gender"),
+];
+
+exports.updateBasicDetailsValidator = [
+  body("first_name")
+    .optional().
+    isString().
+    trim(),
+  body("last_name")
+    .optional()
+    .isString()
+    .trim(),
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other"])
+    .withMessage("Invalid gender"),
+];
+
+// Email
 exports.updateEmailValidator = [
   body("email")
     .notEmpty()
