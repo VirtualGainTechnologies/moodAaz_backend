@@ -179,3 +179,44 @@ exports.updateProductValidator = [
     .isLength({ max: 300 })
     .withMessage("Product name cannot exceed 300 characters"),
 ];
+
+exports.getAdminProductListValidator = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer"),
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be between 1 and 100"),
+  query("search")
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Search must be between 1 and 100 characters"),
+  query("category").optional().isMongoId().withMessage("Invalid category ID"),
+  query("minPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("minPrice must be a positive number"),
+  query("maxPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("maxPrice must be a positive number"),
+  query().custom((_, { req }) => {
+    const { minPrice, maxPrice } = req.query;
+    if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) {
+      throw new Error("minPrice cannot be greater than maxPrice");
+    }
+    return true;
+  }),
+  query("is_featured")
+    .optional()
+    .isBoolean()
+    .withMessage("is_featured must be true or false"),
+  query("sort")
+    .optional()
+    .isIn(["price_asc", "price_desc", "newest"])
+    .withMessage("Invalid sort option"),
+];

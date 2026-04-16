@@ -14,6 +14,7 @@ const {
   getProductDetailsValidator,
   getAllProductsValidator,
   updateProductValidator,
+  getAdminProductListValidator,
 } = require("./product.validator");
 
 // public
@@ -48,6 +49,7 @@ router.get(
   "/admin/list",
   authenticate,
   authorize("SUPER-ADMIN"),
+  getAdminProductListValidator,
   catchAsync("getAdminProductList api", getAdminProductList),
 );
 
