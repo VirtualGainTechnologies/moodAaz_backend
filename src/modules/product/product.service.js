@@ -887,6 +887,7 @@ exports.getAdminProductList = async (query) => {
             then: {
               $concat: [
                 S3_BASE_URL,
+                "/",
                 {
                   $ifNull: [
                     { $arrayElemAt: ["$variants_images.thumbnail", 0] },
