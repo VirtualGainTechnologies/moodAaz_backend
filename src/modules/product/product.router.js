@@ -15,31 +15,27 @@ const {
   updateProductValidator,
 } = require("./product.validator");
 
-router.post(
-  "/create",
-  // authenticate,
-  // authorize("SUPER-ADMIN"),
-  multer.any(),
-  createProductValidator,
-  catchAsync("createProduct api", createProduct),
-);
-
+// public
 router.get(
   "/:id",
-  // authenticate,
-  // authorize("SUPER-ADMIN"),
   getProductDetailsValidator,
   catchAsync("getProductDetails api", getProductDetails),
 );
-
 router.get(
   "/",
-  // authenticate,
-  // authorize("SUPER-ADMIN"),
   getAllProductsValidator,
   catchAsync("getAllProducts api", getAllProducts),
 );
 
+// admin
+router.post(
+  "/create",
+  authenticate,
+  authorize("SUPER-ADMIN"),
+  multer.any(),
+  createProductValidator,
+  catchAsync("createProduct api", createProduct),
+);
 router.put(
   "/:id",
   authenticate,

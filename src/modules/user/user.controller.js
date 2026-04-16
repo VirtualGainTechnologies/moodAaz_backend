@@ -1,9 +1,11 @@
-const service = require("./user.service");
+const authService = require("./auth.service");
+const profileService = require("./profile.service");
 const AppError = require("../../utils/app-error");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
+// AUTH 
 exports.initiateAuthentication = async (req, res) => {
-  const result = await service.initiateAuthentication({
+  const result = await authService.initiateAuthentication({
     ...req.body,
     country: req.country || "IN",
   });
@@ -18,7 +20,7 @@ exports.initiateAuthentication = async (req, res) => {
 };
 
 exports.verifyAuthentication = async (req, res) => {
-  const result = await service.verifyAuthentication({
+  const result = await authService.verifyAuthentication({
     ...req.body,
     country: req.country || "IN",
   });
@@ -48,7 +50,7 @@ exports.verifyAuthentication = async (req, res) => {
 };
 
 exports.checkAuth = async (req, res) => {
-  const isAuthenticated = await service.checkAuth(req);
+  const isAuthenticated = await authService.checkAuth(req);
   res.status(200).json({
     message: "User is authenticated",
     error: false,
@@ -60,7 +62,7 @@ exports.checkAuth = async (req, res) => {
 
 exports.logout = async (req, res) => {
   const userId = req?.user?._id;
-  const result = await service.logout(userId);
+  const result = await authService.logout(userId);
   if (!result) {
     throw new AppError(400, "Logout failed");
   }
@@ -74,3 +76,5 @@ exports.logout = async (req, res) => {
     },
   });
 };
+
+// PROFILE

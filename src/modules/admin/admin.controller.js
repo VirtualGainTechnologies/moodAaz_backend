@@ -1,7 +1,7 @@
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 const AppError = require("../../utils/app-error");
-const authService = require("./admin.auth.service");
-const passwordService = require("./admin.password.service");
+const authService = require("./auth.service");
+const passwordService = require("./password.service");
 
 // AUTH
 exports.registerSuperAdmin = async (req, res) => {
