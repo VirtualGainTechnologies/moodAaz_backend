@@ -57,6 +57,7 @@ const buildMatchStage = (filters = {}) => {
   };
 
   const match = {
+    is_deleted: false,
     ...(status && { status }),
     ...(isFeatured && { is_featured: true }),
     ...(isNewArrival && { is_new_arrival: true }),
@@ -577,6 +578,7 @@ exports.getProductDetails = async (productId) => {
   const pipeline = [
     {
       $match: {
+        is_deleted: false,
         _id: new mongoose.Types.ObjectId(productId),
       },
     },
@@ -858,6 +860,7 @@ exports.getAdminProductList = async (query) => {
 
   const match = {
     status: "ACTIVE",
+    is_deleted: false,
     ...(search && { name: { $regex: search, $options: "i" } }),
     ...(categoryId && { category_id: new mongoose.Types.ObjectId(categoryId) }),
     ...(is_featured !== undefined && { is_featured: is_featured === "true" }),
@@ -960,31 +963,42 @@ exports.getAdminProductList = async (query) => {
 };
 
 exports.deleteProduct = async (productId) => {
-  const product = await repo.findById(productId, "_id variants_images", {
-    lean: true,
-  });
+  const product = await repo.findOne(
+    { is_deleted: false, _id: productId },
+    "_id variants_images",
+    {
+      lean: true,
+    },
+  );
   if (!product) {
-    throw new AppError(400,"Product not found");
+    throw new AppError(400, "Product not found");
+  }
+  // const keys = new Set();
+  // if (Array.isArray(product.variants_images)) {
+  //   product.variants_images.forEach((variant) => {
+  //     if (variant?.thumbnail) {
+  //       keys.add(variant.thumbnail);
+  //     }
+  //     if (Array.isArray(variant?.images)) {
+  //       variant.images.forEach((img) => {
+  //         if (img) keys.add(img);
+  //       });
+  //     }
+  //   });
+  // }
+
+  // if (keys.size > 0) {
+  //   await deleteMultipleFiles([...keys]);
+  // }
+  // await repo.deleteById(productId);
+  const updated = await repo.updateById(
+    productId,
+    { is_deleted: true },
+    { new: true },
+  );
+  if (!updated) {
+    throw new AppError(400, "Failed to update product");
   }
 
-  const keys = new Set();
-  if (Array.isArray(product.variants_images)) {
-    product.variants_images.forEach((variant) => {
-      if (variant?.thumbnail) {
-        keys.add(variant.thumbnail);
-      }
-      if (Array.isArray(variant?.images)) {
-        variant.images.forEach((img) => {
-          if (img) keys.add(img);
-        });
-      }
-    });
-  }
-
-  if (keys.size > 0) {
-    await deleteMultipleFiles([...keys]);
-  }
-
-  await repo.deleteById(productId);
   return true;
 };
