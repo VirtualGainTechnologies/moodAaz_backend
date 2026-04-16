@@ -8,19 +8,20 @@ const {
   getProductDetails,
   getAllProducts,
   getAdminProductList,
+  deleteProduct,
 } = require("./product.controller");
 const {
   createProductValidator,
-  getProductDetailsValidator,
   getAllProductsValidator,
   updateProductValidator,
   getAdminProductListValidator,
+  productIdValidator,
 } = require("./product.validator");
 
 // public
 router.get(
   "/:id",
-  getProductDetailsValidator,
+  productIdValidator,
   catchAsync("getProductDetails api", getProductDetails),
 );
 router.get(
@@ -51,6 +52,13 @@ router.get(
   // authorize("SUPER-ADMIN"),
   getAdminProductListValidator,
   catchAsync("getAdminProductList api", getAdminProductList),
+);
+router.delete(
+  "/admin/delete/:id",
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
+  productIdValidator,
+  catchAsync("deleteProduct api", deleteProduct),
 );
 
 module.exports = router;

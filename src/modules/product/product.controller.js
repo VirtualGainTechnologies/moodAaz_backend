@@ -67,3 +67,15 @@ exports.getAdminProductList = async (req, res) => {
     },
   });
 };
+
+exports.deleteProduct = async (req, res) => {
+  const result = await service.deleteProduct(req.params.id);
+  if (!result) {
+    throw new AppError(400, "Failed to delete product");
+  }
+  res.status(200).json({
+    message: "Product deleted successfully",
+    error: false,
+    data: null,
+  });
+};

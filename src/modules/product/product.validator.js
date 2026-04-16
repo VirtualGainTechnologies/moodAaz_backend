@@ -107,15 +107,6 @@ exports.createProductValidator = [
     .withMessage("Invalid status"),
 ];
 
-exports.getProductDetailsValidator = [
-  param("id")
-    .notEmpty()
-    .withMessage("Product ID is required")
-    .bail()
-    .custom((value) => mongoose.Types.ObjectId.isValid(value))
-    .withMessage("Invalid product ID"),
-];
-
 exports.getAllProductsValidator = [
   query("page")
     .optional()
@@ -219,4 +210,14 @@ exports.getAdminProductListValidator = [
     .optional()
     .isIn(["price_asc", "price_desc", "newest"])
     .withMessage("Invalid sort option"),
+];
+
+exports.productIdValidator = [
+  param("id")
+    .notEmpty()
+    .withMessage("Product ID is required")
+    .bail()
+    .isMongoId()
+    .withMessage("Invalid Product ID")
+    .customSanitizer((value) => new mongoose.Types.ObjectId(value)),
 ];

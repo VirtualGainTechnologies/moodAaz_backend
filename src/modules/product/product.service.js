@@ -9,6 +9,7 @@ const AppError = require("../../utils/app-error");
 const {
   uploadPublicFile,
   uploadMultiplePublicFiles,
+  deleteMultipleFiles,
 } = require("../../services");
 const {
   S3_TEST_PUBLIC_BASE_URL,
@@ -956,4 +957,34 @@ exports.getAdminProductList = async (query) => {
   const products = result[0]?.data || [];
 
   return { products, total };
+};
+
+exports.deleteProduct = async (productId) => {
+  const product = await repo.findById(productId, "_id variants_images", {
+    lean: true,
+  });
+  if (!product) {
+    throw new AppError(400,"Product not found");
+  }
+
+  const keys = new Set();
+  if (Array.isArray(product.variants_images)) {
+    product.variants_images.forEach((variant) => {
+      if (variant?.thumbnail) {
+        keys.add(variant.thumbnail);
+      }
+      if (Array.isArray(variant?.images)) {
+        variant.images.forEach((img) => {
+          if (img) keys.add(img);
+        });
+      }
+    });
+  }
+
+  if (keys.size > 0) {
+    await deleteMultipleFiles([...keys]);
+  }
+
+  await repo.deleteById(productId);
+  return true;
 };
