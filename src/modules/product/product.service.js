@@ -875,16 +875,31 @@ exports.getAdminProductList = async (query) => {
   if (sort === "price_desc") sortOption = { min_price: -1 };
   if (sort === "newest") sortOption = { createdAt: -1 };
 
-  // ─────────────────────────────────────────────
   const pipeline = [
     { $match: match },
     {
       $addFields: {
         min_price: { $min: "$variants.price" },
         total_stock: { $sum: "$variants.stock" },
+        thumbnail_image: {
+          $cond: {
+            if: { $gt: [{ $size: "$variants_images" }, 0] },
+            then: {
+              $concat: [
+                S3_BASE_URL,
+                {
+                  $ifNull: [
+                    { $arrayElemAt: ["$variants_images.thumbnail", 0] },
+                    "",
+                  ],
+                },
+              ],
+            },
+            else: null,
+          },
+        },
       },
     },
-
     {
       $facet: {
         metadata: [{ $count: "total" }],
@@ -915,8 +930,9 @@ exports.getAdminProductList = async (query) => {
               min_price: 1,
               total_stock: 1,
               "ratings.average": 1,
-              variants_images: 1,
+              thumbnail_image: 1,
               variants: 1,
+              is_new_arrival: 1,
               category: {
                 _id: 1,
                 name: 1,

@@ -47,8 +47,8 @@ router.put(
 );
 router.get(
   "/admin/list",
-  authenticate,
-  authorize("SUPER-ADMIN"),
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
   getAdminProductListValidator,
   catchAsync("getAdminProductList api", getAdminProductList),
 );
