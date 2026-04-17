@@ -101,11 +101,12 @@ exports.updateUserProfile = async (req, res) => {
     ...req.body,
   });
 
-  const isProfileIncomplete = !user.email_verified || !user.phone_verified;
   res.status(200).json({
-    message: isProfileIncomplete
-      ? "Profile updated. Verify email & phone"
-      : "Profile updated successfully",
+    message: !user.email_verified
+      ? "Please verify your email"
+      : !user.phone_verified
+        ? "Please verify your phone"
+        : "Profile updated successfully",
     error: false,
     data: user,
   });
