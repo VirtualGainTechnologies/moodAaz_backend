@@ -14,8 +14,7 @@ const {
   verifyPhone,
   addAddress,
   updateAddress,
-  addBasicDetails,
-  updateBasicDetails,
+  updateProfile, 
 } = require("./user.controller");
 
 const {
@@ -27,11 +26,10 @@ const {
   verifyPhoneValidator,
   addAddressValidator,
   updateAddressValidator,
-  addBasicDetailsValidator,
-  updateBasicDetailsValidator,
+  updateBasicDetailsValidator, 
 } = require("./user.validator");
 
-// auth
+// AUTH
 router.post(
   "/auth/initiate",
   initiateAuthenticationValidator,
@@ -46,22 +44,15 @@ router.post(
   catchAsync("verify auth", verifyAuthentication)
 );
 
-// BASIC DETAILS
+// profile update
 router.post(
-  "/profile/details/add",
-  authenticate,
-  addBasicDetailsValidator,
-  catchAsync("add basic details", addBasicDetails)
-);
-
-router.post(
-  "/profile/details/update",
+  "/profile/update",
   authenticate,
   updateBasicDetailsValidator,
-  catchAsync("update basic details", updateBasicDetails)
+  catchAsync("update profile", updateProfile)
 );
 
-// EMAIL UPDATE
+// EMAIL
 router.post(
   "/contact/email/update",
   authenticate,
@@ -76,7 +67,7 @@ router.post(
   catchAsync("verify email", verifyEmail)
 );
 
-// PHONE UPDATE
+// PHONE
 router.post(
   "/contact/phone/update",
   authenticate,
@@ -91,7 +82,7 @@ router.post(
   catchAsync("verify phone", verifyPhone)
 );
 
-// ADD ADDRESS
+// ADDRESS
 router.post(
   "/profile/address/add",
   authenticate,
@@ -99,7 +90,6 @@ router.post(
   catchAsync("add address", addAddress)
 );
 
-// UPDATE ADDRESS
 router.post(
   "/profile/address/update",
   authenticate,
@@ -112,8 +102,9 @@ router.get(
   catchAsync("check auth", checkAuth));
 
 router.post(
-  "/auth/logout", 
-  authenticate, 
-  catchAsync("logout", logout));
+  "/auth/logout",
+  authenticate,
+  catchAsync("logout", logout)
+);
 
 module.exports = router;

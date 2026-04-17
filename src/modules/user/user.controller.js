@@ -3,16 +3,7 @@ const profileService = require("./profile.service");
 const AppError = require("../../utils/app-error");
 const { COOKIE_EXPIRATION_MILLISECONDS } = require("../../config/env");
 
-// SAFE USER ID HELPER
-const getUserId = (req) => {
-  if (!req.user || !req.user._id) {
-    throw new AppError(401, "Unauthorized");
-  }
-  return req.user._id;
-};
-
 // AUTH
-
 exports.initiateAuthentication = async (req, res) => {
   const result = await authService.initiateAuthentication({
     ...req.body,
@@ -63,11 +54,16 @@ exports.checkAuth = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  const userId = getUserId(req);
+  const userId = req.user._id;
 
   await authService.logout(userId);
 
-  res.clearCookie("user_token");
+  res.clearCookie("user_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    signed: true,
+    sameSite: "strict",
+  });
 
   res.status(200).json({
     message: "Logout successful",
@@ -76,12 +72,24 @@ exports.logout = async (req, res) => {
   });
 };
 
-// PROFILE (EMAIL / PHONE / ADDRESS)
+// PROFILE (UNIFIED)
+exports.updateProfile = async (req, res) => {
+  const result = await profileService.updateBasicDetails(
+    req.user._id,
+    req.body
+  );
 
-// 1. EMAIL INITIATE
+  res.status(200).json({
+    message: "Profile updated successfully",
+    error: false,
+    data: result,
+  });
+};
+
+// EMAIL
 exports.updateEmail = async (req, res) => {
   const result = await profileService.initiateEmailUpdate(
-    getUserId(req),
+    req.user._id,
     req.body.email
   );
 
@@ -92,10 +100,9 @@ exports.updateEmail = async (req, res) => {
   });
 };
 
-// 2. EMAIL VERIFY
 exports.verifyEmail = async (req, res) => {
   const result = await profileService.verifyEmailUpdate(
-    getUserId(req),
+    req.user._id,
     req.body.otpId,
     req.body.otp,
     req.body.email
@@ -108,10 +115,10 @@ exports.verifyEmail = async (req, res) => {
   });
 };
 
-// 3. PHONE INITIATE
+// PHONE
 exports.updatePhone = async (req, res) => {
   const result = await profileService.initiatePhoneUpdate(
-    getUserId(req),
+    req.user._id,
     req.body.phone,
     req.country || "IN"
   );
@@ -123,10 +130,9 @@ exports.updatePhone = async (req, res) => {
   });
 };
 
-// 4. PHONE VERIFY
 exports.verifyPhone = async (req, res) => {
   const result = await profileService.verifyPhoneUpdate(
-    getUserId(req),
+    req.user._id,
     req.body.otpId,
     req.body.otp,
     req.body.phone,
@@ -140,10 +146,10 @@ exports.verifyPhone = async (req, res) => {
   });
 };
 
-// 5. ADD ADDRESS
+// ADDRESS
 exports.addAddress = async (req, res) => {
   const result = await profileService.addAddress(
-    getUserId(req),
+    req.user._id,
     req.body
   );
 
@@ -154,43 +160,14 @@ exports.addAddress = async (req, res) => {
   });
 };
 
-// 6. UPDATE ADDRESS
 exports.updateAddress = async (req, res) => {
   const result = await profileService.updateAddress(
-    getUserId(req),
+    req.user._id,
     req.body
   );
 
   res.status(200).json({
     message: "Address updated successfully",
-    error: false,
-    data: result,
-  });
-};
-
-// 7. ADD BASIC DETAILS
-exports.addBasicDetails = async (req, res) => {
-  const result = await profileService.addBasicDetails(
-    getUserId(req),
-    req.body
-  );
-
-  res.status(200).json({
-    message: "Details added successfully",
-    error: false,
-    data: result,
-  });
-};
-
-// 8. UPDATE BASIC DETAILS
-exports.updateBasicDetails = async (req, res) => {
-  const result = await profileService.updateBasicDetails(
-    getUserId(req),
-    req.body
-  );
-
-  res.status(200).json({
-    message: "Details updated successfully",
     error: false,
     data: result,
   });
