@@ -13,11 +13,15 @@ const {
   logout,
   getUserProfile,
   updateUserProfile,
+  sendContactUpdateOtp,
+  verifyContactUpdateOtp,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
   verifyAuthenticationValidator,
   updateUserProfileValidator,
+  sendContactUpdateOtpValidator,
+  verifyContactUpdateOtpValidator,
 } = require("./user.validator");
 
 // AUTH
@@ -49,6 +53,24 @@ router.put(
   authorize("USER"),
   updateUserProfileValidator,
   catchAsync("updateUserProfile api", updateUserProfile),
+);
+
+router.post(
+  "/contact/send-otp",
+  authenticate,
+  authorize("USER"),
+  sendContactUpdateOtpValidator,
+  catchAsync("getIpAndLocation middleware", getIpAndLocation),
+  catchAsync("sendContactUpdateOtp api", sendContactUpdateOtp),
+);
+
+router.post(
+  "/contact/verify-otp",
+  authenticate,
+  authorize("USER"),
+  verifyContactUpdateOtpValidator,
+  catchAsync("getIpAndLocation middleware", getIpAndLocation),
+  catchAsync("verifyContactUpdateOtp api", verifyContactUpdateOtp),
 );
 
 module.exports = router;

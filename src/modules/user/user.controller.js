@@ -111,3 +111,42 @@ exports.updateUserProfile = async (req, res) => {
     data: user,
   });
 };
+
+exports.sendContactUpdateOtp = async (req, res) => {
+  const { type, value } = req.body;
+  const result = await profileService.sendContactUpdateOtp({
+    userId: req.user._id,
+    type,
+    value,
+    country: req.country || "IN",
+  });
+
+  res.status(200).json({
+    message: "OTP sent successfully",
+    error: false,
+    data: {
+      otpId: result.otpId,
+      type,
+      value,
+    },
+  });
+};
+
+exports.verifyContactUpdateOtp = async (req, res) => {
+  const { type, value, otpId, otp } = req.body;
+
+  const user = await profileService.verifyContactUpdateOtp({
+    userId: req.user._id,
+    type,
+    value,
+    otpId,
+    otp,
+    country: req.country || "IN",
+  });
+
+  res.status(200).json({
+    message: "Contact verified successfully",
+    error: false,
+    data: user,
+  });
+};

@@ -29,8 +29,20 @@ const forgotPasswordOtpTemplate = ({ otp }) => ({
   `,
 });
 
+const emailUpdateOtpTemplate = ({ otp }) => ({
+  subject: `${APP_NAME} Email Update OTP`,
+  body: `
+    <h2>${APP_NAME} Email Update Request</h2>
+    <p>We received a request to update your email address.</p>
+    <p>Your OTP is <b>${otp}</b></p>
+    <p>This OTP is valid for 5 minutes.</p>
+    <p>If you did not request this change, please contact support immediately.</p>
+  `,
+});
+
 exports.emailOtpTemplates = {
   login: loginOtpTemplate,
   register: registerOtpTemplate,
   forgotPassword: forgotPasswordOtpTemplate,
+  emailUpdate: emailUpdateOtpTemplate,
 };
