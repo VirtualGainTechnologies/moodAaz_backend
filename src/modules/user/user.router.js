@@ -17,6 +17,7 @@ const {
 const {
   initiateAuthenticationValidator,
   verifyAuthenticationValidator,
+  updateUserProfileValidator,
 } = require("./user.validator");
 
 // AUTH
@@ -46,6 +47,7 @@ router.put(
   "/profile/update",
   authenticate,
   authorize("USER"),
+  updateUserProfileValidator,
   catchAsync("updateUserProfile api", updateUserProfile),
 );
 

@@ -24,7 +24,7 @@ exports.updateUserProfile = async (payload) => {
     {
       returnDocument: "after",
       select:
-        "_id first_name last_name gender email phone_code phone email_verified phone_verified",
+        "_id first_name last_name gender email phone_code phone email_verified phone_verified role",
     },
   );
   if (!user) {

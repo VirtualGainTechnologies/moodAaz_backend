@@ -51,8 +51,8 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: {
-        values: ["male", "female", "other"],
-        message: "Gender must be male, female, or other",
+        values: ["MALE", "FEMALE", "OTHER"],
+        message: "Gender must be MALE, FEMALE, or OTHER",
       },
     },
     date_of_birth: {
