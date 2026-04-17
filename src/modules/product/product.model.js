@@ -193,9 +193,13 @@ const productSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"],
-      default: "ACTIVE",
+       enum: {
+        values: ["ACTIVE", "INACTIVE", "OUT_OF_STOCK", "DRAFT", "ARCHIVED"],
+        message: "Invalid status",
     },
+     default: "ACTIVE",
+    },
+   
     date: {
       type: Number,
       default: () => Date.now(),
