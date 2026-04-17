@@ -94,3 +94,19 @@ exports.getUserProfile = async (req, res) => {
     data: user,
   });
 };
+
+exports.updateUserProfile = async (req, res) => {
+  const user = await profileService.updateUserProfile({
+    userId: req.user._id,
+    ...req.body,
+  });
+
+  const isProfileIncomplete = !user.email_verified || !user.phone_verified;
+  res.status(200).json({
+    message: isProfileIncomplete
+      ? "Profile updated. Verify email & phone"
+      : "Profile updated successfully",
+    error: false,
+    data: user,
+  });
+};

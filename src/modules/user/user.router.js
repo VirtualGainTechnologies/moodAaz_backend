@@ -12,6 +12,7 @@ const {
   checkAuth,
   logout,
   getUserProfile,
+  updateUserProfile,
 } = require("./user.controller");
 const {
   initiateAuthenticationValidator,
@@ -41,4 +42,11 @@ router.get(
   authorize("USER"),
   catchAsync("getUserProfile api", getUserProfile),
 );
+router.put(
+  "/profile/update",
+  authenticate,
+  authorize("USER"),
+  catchAsync("updateUserProfile api", updateUserProfile),
+);
+
 module.exports = router;
