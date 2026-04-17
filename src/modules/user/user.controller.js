@@ -88,19 +88,12 @@ exports.updateProfile = async (req, res) => {
 exports.sendContactUpdateOtp = async (req, res) => {
   const { type, value } = req.body;
 
-  let result;
-
-  if (type === "email") {
-    result = await profileService.initiateEmailUpdate(req.user._id, value);
-  } else if (type === "phone") {
-    result = await profileService.initiatePhoneUpdate(
-      req.user._id,
-      value,
-      req.country || "IN"
-    );
-  } else {
-    throw new AppError(400, "Invalid contact type");
-  }
+  const result = await profileService.sendContactUpdateOtp(
+    req.user._id,
+    type,
+    value,
+    req.country || "IN"
+  );
 
   res.status(200).json({
     message: "OTP sent successfully",
@@ -112,29 +105,55 @@ exports.sendContactUpdateOtp = async (req, res) => {
 exports.verifyContactUpdateOtp = async (req, res) => {
   const { type, value, otpId, otp } = req.body;
 
-  let result;
-
-  if (type === "email") {
-    result = await profileService.verifyEmailUpdate(
-      req.user._id,
-      otpId,
-      otp,
-      value
-    );
-  } else if (type === "phone") {
-    result = await profileService.verifyPhoneUpdate(
-      req.user._id,
-      otpId,
-      otp,
-      value,
-      req.country || "IN"
-    );
-  } else {
-    throw new AppError(400, "Invalid contact type");
-  }
+  const user = await profileService.verifyContactUpdateOtp(
+    req.user._id,
+    type,
+    value,
+    otpId,
+    otp,
+    req.country || "IN"
+  );
 
   res.status(200).json({
     message: "Contact verified successfully",
+    error: false,
+    data: {
+      _id: user._id,
+      id: user._id,
+      role: user.role,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      phone: user.phone,
+      email: user.email || "",
+      gender: user.gender || "",
+      email_verified: user.email_verified,
+      phone_verified: user.phone_verified,
+    },
+  });
+};
+
+// ADDRESS
+exports.addAddress = async (req, res) => {
+  const result = await profileService.addAddress(
+    req.user._id,
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Address added successfully",
+    error: false,
+    data: result,
+  });
+};
+
+exports.updateAddress = async (req, res) => {
+  const result = await profileService.updateAddress(
+    req.user._id,
+    req.body
+  );
+
+  res.status(200).json({
+    message: "Address updated successfully",
     error: false,
     data: result,
   });

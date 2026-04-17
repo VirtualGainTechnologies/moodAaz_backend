@@ -7,126 +7,63 @@ const {
 } = require("../otp/otp.service");
 const { parsePhone } = require("../../utils/phone");
 
-// EMAIL 
-exports.initiateEmailUpdate = async (userId, email) => {
-  email = email.toLowerCase().trim();
+// CONTACT - SEND OTP
+exports.sendContactUpdateOtp = async (userId, type, value, country = "IN") => {
+  if (type === "email") {
+    const email = value.toLowerCase().trim();
+    const existing = await repo.findOne({ email });
+    if (existing && existing._id.toString() !== userId) throw new AppError(409, "Email already in use");
+    const result = await sendEmailOtp(email, "EMAIL_UPDATE");
+    if (!result) throw new AppError(400, "Failed to send email OTP");
+    return result;
+  }
+  if (type === "phone") {
+    let parsed;
+    try { parsed = parsePhone(value, country); }
+    catch { throw new AppError(400, "Invalid phone number"); }
 
-  const existing = await repo.findOne({ email });
+    const existing = await repo.findOne({ phone: parsed.input });
+    if (existing && existing._id.toString() !== userId) throw new AppError(409, "Phone already in use");
 
-  if (existing && existing._id.toString() !== userId) {
-    throw new AppError(409, "Email already in use");
+    const result = await sendMobileOtp(parsed.countryCode, parsed.input, "PHONE_UPDATE");
+    if (!result) throw new AppError(400, "Failed to send phone OTP");
+
+    return result;
   }
 
-  const result = await sendEmailOtp(email, "login");
-
-  if (!result) {
-    throw new AppError(400, "Failed to send email OTP");
-  }
-
-  return result;
+  throw new AppError(400, "Invalid contact type");
 };
-
-exports.verifyEmailUpdate = async (userId, otpId, otp, email) => {
-  email = email.toLowerCase().trim();
-
+// CONTACT - VERIFY OTP
+exports.verifyContactUpdateOtp = async (userId, type, value, otpId, otp, country = "IN") => {
   const verified = await verifyOtp(otpId, otp);
+  if (!verified) throw new AppError(400, "Invalid OTP");
 
-  if (!verified) {
-    throw new AppError(400, "Invalid OTP");
+  let user;
+
+  if (type === "email") {
+    const email = value.toLowerCase().trim();
+    const existing = await repo.findOne({ email });
+    if (existing && existing._id.toString() !== userId) throw new AppError(409, "Email already in use");
+
+    user = await repo.updateById(userId, { email, email_verified: true }, { new: true });
+    if (!user) throw new AppError(400, "Failed to update email");
   }
 
-  const existing = await repo.findOne({ email });
+  if (type === "phone") {
+    let parsed;
+    try { parsed = parsePhone(value, country); }
+    catch { throw new AppError(400, "Invalid phone number"); }
 
-  if (existing && existing._id.toString() !== userId) {
-    throw new AppError(409, "Email already in use");
+    const existing = await repo.findOne({ phone: parsed.input });
+    if (existing && existing._id.toString() !== userId) throw new AppError(409, "Phone already in use");
+
+    user = await repo.updateById(
+      userId,
+      { phone_code: parsed.countryCode, phone: parsed.input, phone_verified: true },
+      { new: true }
+    );
+    if (!user) throw new AppError(400, "Failed to update phone");
   }
-
-  const user = await repo.updateById(
-    userId,
-    {
-      email,
-      email_verified: true,
-    },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new AppError(400, "Failed to update email");
-  }
-
-  return user;
-};
-
-// PHONE 
-exports.initiatePhoneUpdate = async (userId, phone, country) => {
-  let parsed;
-
-  try {
-    parsed = parsePhone(phone, country);
-  } catch {
-    throw new AppError(400, "Invalid phone number");
-  }
-
-  const existing = await repo.findOne({ phone: parsed.input });
-
-  if (existing && existing._id.toString() !== userId) {
-    throw new AppError(409, "Phone already in use");
-  }
-
-  const result = await sendMobileOtp(
-    parsed.countryCode,
-    parsed.input,
-    "PHONE_UPDATE"
-  );
-
-  if (!result) {
-    throw new AppError(400, "Failed to send phone OTP");
-  }
-
-  return result;
-};
-
-exports.verifyPhoneUpdate = async (
-  userId,
-  otpId,
-  otp,
-  phone,
-  country
-) => {
-  let parsed;
-
-  try {
-    parsed = parsePhone(phone, country);
-  } catch {
-    throw new AppError(400, "Invalid phone number");
-  }
-
-  const verified = await verifyOtp(otpId, otp);
-
-  if (!verified) {
-    throw new AppError(400, "Invalid OTP");
-  }
-
-  const existing = await repo.findOne({ phone: parsed.input });
-
-  if (existing && existing._id.toString() !== userId) {
-    throw new AppError(409, "Phone already in use");
-  }
-
-  const user = await repo.updateById(
-    userId,
-    {
-      phone_code: parsed.countryCode,
-      phone: parsed.input,
-      phone_verified: true,
-    },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new AppError(400, "Failed to update phone");
-  }
-
   return user;
 };
 
