@@ -2,7 +2,6 @@ const { body } = require("express-validator");
 const validator = require("validator");
 
 // AUTH
-
 const initiateAuthenticationValidator = [
   body("identifier")
     .notEmpty()
@@ -43,8 +42,7 @@ exports.verifyAuthenticationValidator = [
     .withMessage("Invalid auth type"),
 ];
 
-// BASIC DETAILS
-
+// PROFILE DETAILS
 exports.addBasicDetailsValidator = [
   body("first_name")
     .notEmpty()
@@ -66,36 +64,38 @@ exports.addBasicDetailsValidator = [
 ];
 
 exports.updateBasicDetailsValidator = [
-  body("first_name")
-    .optional().
-    isString().
-    trim(),
-  body("last_name")
-    .optional()
-    .isString()
-    .trim(),
+  body("firstName").optional().isString().trim(),
+  body("lastName").optional().isString().trim(),
   body("gender")
     .optional()
     .isIn(["male", "female", "other"])
     .withMessage("Invalid gender"),
 ];
 
-// Email
-exports.updateEmailValidator = [
-  body("email")
+// CONTACT 
+exports.contactOtpValidator = [
+  body("type")
     .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Invalid email format")
-    .trim(),
+    .withMessage("Type is required")
+    .isIn(["email", "phone"])
+    .withMessage("Type must be email or phone"),
+
+  body("value")
+    .notEmpty()
+    .withMessage("Value is required")
+    .trim()
 ];
 
-exports.verifyEmailValidator = [
-  body("email")
+exports.verifyContactOtpValidator = [
+  body("type")
     .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Invalid email format")
+    .withMessage("Type is required")
+    .isIn(["email", "phone"])
+    .withMessage("Type must be email or phone"),
+
+  body("value")
+    .notEmpty()
+    .withMessage("Value is required")
     .trim(),
 
   body("otpId")
@@ -110,86 +110,4 @@ exports.verifyEmailValidator = [
     .isLength({ min: 6, max: 6 })
     .isNumeric()
     .withMessage("OTP must be exactly 6 digits"),
-];
-
-// Phone
-
-exports.updatePhoneValidator = [
-  body("phone")
-    .notEmpty()
-    .withMessage("Phone number is required")
-    .trim()
-    .isLength({ min: 10 })
-    .withMessage("Phone number too short")
-    .custom((value) => {
-      if (!validator.isMobilePhone(value, "any")) {
-        throw new Error("Invalid phone number");
-      }
-      return true;
-    }),
-];
-
-exports.verifyPhoneValidator = [
-  body("phone")
-    .notEmpty()
-    .withMessage("Phone number is required")
-    .trim()
-    .isLength({ min: 10 })
-    .withMessage("Phone number too short")
-    .custom((value) => {
-      if (!validator.isMobilePhone(value, "any")) {
-        throw new Error("Invalid phone number");
-      }
-      return true;
-    }),
-
-  body("otpId")
-    .notEmpty()
-    .withMessage("OTP id is required")
-    .isMongoId()
-    .withMessage("Invalid OTP id"),
-
-  body("otp")
-    .notEmpty()
-    .withMessage("OTP is required")
-    .isLength({ min: 6, max: 6 })
-    .isNumeric()
-    .withMessage("OTP must be exactly 6 digits"),
-];
-
-// ADDRESS
-
-exports.addAddressValidator = [
-  body("street")
-    .notEmpty()
-    .withMessage("Street is required")
-    .trim(),
-
-  body("city")
-    .notEmpty()
-    .withMessage("City is required")
-    .trim(),
-
-  body("state")
-    .notEmpty()
-    .withMessage("State is required")
-    .trim(),
-
-  body("country")
-    .notEmpty()
-    .withMessage("Country is required")
-    .trim(),
-
-  body("zipCode")
-    .notEmpty()
-    .withMessage("Zip code is required")
-    .trim(),
-];
-
-exports.updateAddressValidator = [
-  body("street").optional().isString().trim(),
-  body("city").optional().isString().trim(),
-  body("state").optional().isString().trim(),
-  body("country").optional().isString().trim(),
-  body("zipCode").optional().isString().trim(),
 ];

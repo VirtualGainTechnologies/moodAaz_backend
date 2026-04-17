@@ -54,9 +54,7 @@ exports.checkAuth = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  const userId = req.user._id;
-
-  await authService.logout(userId);
+  await authService.logout(req.user._id);
 
   res.clearCookie("user_token", {
     httpOnly: true,
@@ -72,7 +70,7 @@ exports.logout = async (req, res) => {
   });
 };
 
-// PROFILE (UNIFIED)
+// PROFILE
 exports.updateProfile = async (req, res) => {
   const result = await profileService.updateBasicDetails(
     req.user._id,
@@ -86,88 +84,57 @@ exports.updateProfile = async (req, res) => {
   });
 };
 
-// EMAIL
-exports.updateEmail = async (req, res) => {
-  const result = await profileService.initiateEmailUpdate(
-    req.user._id,
-    req.body.email
-  );
+// CONTACT 
+exports.sendContactUpdateOtp = async (req, res) => {
+  const { type, value } = req.body;
+
+  let result;
+
+  if (type === "email") {
+    result = await profileService.initiateEmailUpdate(req.user._id, value);
+  } else if (type === "phone") {
+    result = await profileService.initiatePhoneUpdate(
+      req.user._id,
+      value,
+      req.country || "IN"
+    );
+  } else {
+    throw new AppError(400, "Invalid contact type");
+  }
 
   res.status(200).json({
-    message: "OTP sent to email",
+    message: "OTP sent successfully",
     error: false,
     data: result,
   });
 };
 
-exports.verifyEmail = async (req, res) => {
-  const result = await profileService.verifyEmailUpdate(
-    req.user._id,
-    req.body.otpId,
-    req.body.otp,
-    req.body.email
-  );
+exports.verifyContactUpdateOtp = async (req, res) => {
+  const { type, value, otpId, otp } = req.body;
+
+  let result;
+
+  if (type === "email") {
+    result = await profileService.verifyEmailUpdate(
+      req.user._id,
+      otpId,
+      otp,
+      value
+    );
+  } else if (type === "phone") {
+    result = await profileService.verifyPhoneUpdate(
+      req.user._id,
+      otpId,
+      otp,
+      value,
+      req.country || "IN"
+    );
+  } else {
+    throw new AppError(400, "Invalid contact type");
+  }
 
   res.status(200).json({
-    message: "Email verified successfully",
-    error: false,
-    data: result,
-  });
-};
-
-// PHONE
-exports.updatePhone = async (req, res) => {
-  const result = await profileService.initiatePhoneUpdate(
-    req.user._id,
-    req.body.phone,
-    req.country || "IN"
-  );
-
-  res.status(200).json({
-    message: "OTP sent to phone",
-    error: false,
-    data: result,
-  });
-};
-
-exports.verifyPhone = async (req, res) => {
-  const result = await profileService.verifyPhoneUpdate(
-    req.user._id,
-    req.body.otpId,
-    req.body.otp,
-    req.body.phone,
-    req.country || "IN"
-  );
-
-  res.status(200).json({
-    message: "Phone verified successfully",
-    error: false,
-    data: result,
-  });
-};
-
-// ADDRESS
-exports.addAddress = async (req, res) => {
-  const result = await profileService.addAddress(
-    req.user._id,
-    req.body
-  );
-
-  res.status(200).json({
-    message: "Address added successfully",
-    error: false,
-    data: result,
-  });
-};
-
-exports.updateAddress = async (req, res) => {
-  const result = await profileService.updateAddress(
-    req.user._id,
-    req.body
-  );
-
-  res.status(200).json({
-    message: "Address updated successfully",
+    message: "Contact verified successfully",
     error: false,
     data: result,
   });

@@ -7,10 +7,7 @@ const {
 } = require("../otp/otp.service");
 const { parsePhone } = require("../../utils/phone");
 
-// =========================
-// EMAIL
-// =========================
-
+// EMAIL 
 exports.initiateEmailUpdate = async (userId, email) => {
   email = email.toLowerCase().trim();
 
@@ -20,7 +17,7 @@ exports.initiateEmailUpdate = async (userId, email) => {
     throw new AppError(409, "Email already in use");
   }
 
-  const result = await sendEmailOtp(email, "EMAIL_UPDATE");
+  const result = await sendEmailOtp(email, "login");
 
   if (!result) {
     throw new AppError(400, "Failed to send email OTP");
@@ -60,10 +57,7 @@ exports.verifyEmailUpdate = async (userId, otpId, otp, email) => {
   return user;
 };
 
-// =========================
-// PHONE (FIXED)
-// =========================
-
+// PHONE 
 exports.initiatePhoneUpdate = async (userId, phone, country) => {
   let parsed;
 
@@ -136,47 +130,7 @@ exports.verifyPhoneUpdate = async (
   return user;
 };
 
-// =========================
-// ADDRESS
-// =========================
-
-// ADD ADDRESS
-exports.addAddress = async (userId, addressData) => {
-  const user = await repo.updateById(
-    userId,
-    {
-      address: addressData,
-    },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new AppError(400, "Failed to add address");
-  }
-
-  return user;
-};
-
-// UPDATE ADDRESS
-exports.updateAddress = async (userId, addressData) => {
-  const user = await repo.updateById(
-    userId,
-    {
-      address: {
-        ...addressData,
-      },
-    },
-    { new: true }
-  );
-
-  if (!user) {
-    throw new AppError(400, "Failed to update address");
-  }
-
-  return user;
-};
-
-// profile details
+// PROFILE DETAILS
 exports.updateBasicDetails = async (userId, data) => {
   const updateData = {};
 

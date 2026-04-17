@@ -8,25 +8,17 @@ const {
   verifyAuthentication,
   checkAuth,
   logout,
-  updateEmail,
-  verifyEmail,
-  updatePhone,
-  verifyPhone,
-  addAddress,
-  updateAddress,
-  updateProfile, 
+  updateProfile,
+  sendContactUpdateOtp,
+  verifyContactUpdateOtp,
 } = require("./user.controller");
 
 const {
   initiateAuthenticationValidator,
   verifyAuthenticationValidator,
-  updateEmailValidator,
-  verifyEmailValidator,
-  updatePhoneValidator,
-  verifyPhoneValidator,
-  addAddressValidator,
-  updateAddressValidator,
-  updateBasicDetailsValidator, 
+  updateBasicDetailsValidator,
+  contactOtpValidator,
+  verifyContactOtpValidator,
 } = require("./user.validator");
 
 // AUTH
@@ -44,7 +36,7 @@ router.post(
   catchAsync("verify auth", verifyAuthentication)
 );
 
-// profile update
+// PROFILE
 router.post(
   "/profile/update",
   authenticate,
@@ -52,51 +44,22 @@ router.post(
   catchAsync("update profile", updateProfile)
 );
 
-// EMAIL
+// CONTACT
 router.post(
-  "/contact/email/update",
+  "/contact/send-otp",
   authenticate,
-  updateEmailValidator,
-  catchAsync("update email", updateEmail)
+  contactOtpValidator,
+  catchAsync("send contact otp", sendContactUpdateOtp)
 );
 
 router.post(
-  "/contact/email/verify",
+  "/contact/verify-otp",
   authenticate,
-  verifyEmailValidator,
-  catchAsync("verify email", verifyEmail)
+  verifyContactOtpValidator,
+  catchAsync("verify contact otp", verifyContactUpdateOtp)
 );
 
-// PHONE
-router.post(
-  "/contact/phone/update",
-  authenticate,
-  updatePhoneValidator,
-  catchAsync("update phone", updatePhone)
-);
-
-router.post(
-  "/contact/phone/verify",
-  authenticate,
-  verifyPhoneValidator,
-  catchAsync("verify phone", verifyPhone)
-);
-
-// ADDRESS
-router.post(
-  "/profile/address/add",
-  authenticate,
-  addAddressValidator,
-  catchAsync("add address", addAddress)
-);
-
-router.post(
-  "/profile/address/update",
-  authenticate,
-  updateAddressValidator,
-  catchAsync("update address", updateAddress)
-);
-
+// AUTH CHECK
 router.get(
   "/auth/check", 
   catchAsync("check auth", checkAuth));
