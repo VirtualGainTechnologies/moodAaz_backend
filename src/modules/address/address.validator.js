@@ -13,27 +13,37 @@ exports.addAddressValidator = [
     .trim()
     .notEmpty()
     .withMessage("Full name is required")
-    .isLength({ min: 2, max: 50 })
-    .withMessage("Full name must be between 2 and 50 characters")
-    .isAlpha("en-US", { ignore: " " })
-    .withMessage("Full name must contain only letters"),
-  body("phone")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Full name must be between 2 and 100 characters")
+    .matches(/^[A-Za-z\s]+$/)
+    .withMessage("Full name must contain only letters and spaces"),
+  body("mobileNumber")
     .trim()
     .notEmpty()
-    .withMessage("Phone number is required")
+    .withMessage("Mobile number is required")
     .matches(/^[6-9]\d{9}$/)
     .withMessage("Enter a valid 10-digit Indian mobile number"),
-  body("line1")
-    .trim()
-    .notEmpty()
-    .withMessage("Address line 1 is required")
-    .isLength({ min: 5, max: 100 })
-    .withMessage("Address line 1 must be between 5 and 100 characters"),
-  body("line2")
+  body("alternateContact")
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Address line 2 must be at most 100 characters"),
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage("Enter a valid alternate contact number"),
+  body("locallity")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage("Locality cannot exceed 150 characters"),
+  body("fullAddress")
+    .trim()
+    .notEmpty()
+    .withMessage("Full address is required")
+    .isLength({ min: 5, max: 300 })
+    .withMessage("Address must be between 5 and 300 characters"),
+  body("landmark")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage("Landmark cannot exceed 150 characters"),
   body("city")
     .trim()
     .notEmpty()
@@ -46,22 +56,18 @@ exports.addAddressValidator = [
     .withMessage("State is required")
     .isLength({ min: 2, max: 50 })
     .withMessage("State must be between 2 and 50 characters"),
-  body("pincode")
+  body("pinCode")
     .trim()
     .notEmpty()
     .withMessage("Pincode is required")
     .matches(/^\d{6}$/)
     .withMessage("Pincode must be exactly 6 digits"),
-  body("country")
-    .optional()
+  body("addressType")
     .trim()
-    .isLength({ min: 2, max: 56 })
-    .withMessage("Enter a valid country name"),
-  body("label")
-    .optional()
-    .trim()
+    .notEmpty()
+    .withMessage("Address type is required")
     .isIn(["HOME", "WORK", "OTHER"])
-    .withMessage("Label must be one of: HOME, WORK, OTHER"),
+    .withMessage("Address type must be one of: HOME, WORK, OTHER"),
   body("isDefault")
     .optional()
     .isBoolean()
@@ -78,23 +84,33 @@ exports.updateAddressValidator = [
   body("fullName")
     .optional()
     .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage("Full name must be between 2 and 50 characters"),
-  body("phone")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Full name must be between 2 and 100 characters"),
+  body("mobileNumber")
     .optional()
     .trim()
     .matches(/^[6-9]\d{9}$/)
-    .withMessage("Enter a valid 10-digit Indian mobile number"),
-  body("line1")
-    .optional()
-    .trim()
-    .isLength({ min: 5, max: 100 })
-    .withMessage("Address line 1 must be between 5 and 100 characters"),
-  body("line2")
+    .withMessage("Enter a valid mobile number"),
+  body("alternateContact")
     .optional({ checkFalsy: true })
     .trim()
-    .isLength({ max: 100 })
-    .withMessage("Address line 2 must be at most 100 characters"),
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage("Enter a valid alternate contact number"),
+  body("locallity")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage("Locality cannot exceed 150 characters"),
+  body("fullAddress")
+    .optional()
+    .trim()
+    .isLength({ min: 5, max: 300 })
+    .withMessage("Address must be between 5 and 300 characters"),
+  body("landmark")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage("Landmark cannot exceed 150 characters"),
   body("city")
     .optional()
     .trim()
@@ -105,42 +121,47 @@ exports.updateAddressValidator = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage("State must be between 2 and 50 characters"),
-  body("pincode")
+  body("pinCode")
     .optional()
     .trim()
     .matches(/^\d{6}$/)
-    .withMessage("Pincode must be exactly 6 digits"),
-  body("country")
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 56 })
-    .withMessage("Enter a valid country name"),
-  body("label")
+    .withMessage("Invalid pincode"),
+  body("addressType")
     .optional()
     .trim()
     .isIn(["HOME", "WORK", "OTHER"])
-    .withMessage("Label must be one of: HOME, WORK, OTHER"),
+    .withMessage("Invalid address type"),
   body("isDefault")
     .optional()
     .isBoolean()
     .withMessage("isDefault must be a boolean")
     .toBoolean(),
+  body("country")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 56 })
+    .withMessage("Enter a valid country name"),
   body().custom((body) => {
     const allowed = [
       "fullName",
-      "phone",
-      "line1",
-      "line2",
+      "mobileNumber",
+      "alternateContact",
+      "locallity",
+      "fullAddress",
+      "landmark",
       "city",
       "state",
-      "pincode",
-      "country",
-      "label",
-      "isDefault",
+      "pinCode",
+      "addressType",
+      "isDefault"
     ];
+
     const hasAtLeastOne = allowed.some((key) => body[key] !== undefined);
-    if (!hasAtLeastOne)
+
+    if (!hasAtLeastOne) {
       throw new Error("At least one field is required to update");
+    }
+
     return true;
   }),
 ];

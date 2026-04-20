@@ -5,42 +5,44 @@ exports.addAddress = async (payload) => {
   const {
     userId,
     fullName,
-    isDefault = false,
-    label,
-    phone,
-    line1,
-    line2,
+    mobileNumber,
+    alternateContact,
+    locallity,
+    fullAddress,
+    landmark,
     city,
     state,
-    pincode,
-    country,
+    pinCode,
+    addressType,
+    isDefault = false,
   } = payload;
 
   if (isDefault) {
     await repo.updateOne(
       { user_id: userId, is_default: true },
       { $set: { is_default: false } },
-      { returnDocument: "after", select: "_id" },
     );
   }
 
   const address = await repo.create({
     user_id: userId,
     full_name: fullName,
-    is_default: isDefault,
-    label,
-    phone,
-    line1,
-    ...(line2 && { line2 }),
+    mobile_number: mobileNumber,
+    ...(alternateContact && { alternate_contact: alternateContact }),
+    ...(locallity && { locallity }),
+    full_address: fullAddress,
+    ...(landmark && { landmark }),
     city,
     state,
-    pincode,
-    country,
+    pincode: pinCode,
+    address_type: addressType,
+    is_default: isDefault,
   });
 
   if (!address) {
     throw new AppError(400, "Failed to add address");
   }
+
   return address;
 };
 
@@ -58,27 +60,27 @@ exports.getAddresses = async (userId) => {
   return addresses;
 };
 
-exports.updateAddress = async ( payload) => {
+exports.updateAddress = async (payload) => {
   const {
     userId,
     addressId,
     fullName,
-    isDefault = false,
-    label,
-    phone,
-    line1,
-    line2,
+    mobileNumber,
+    alternateContact,
+    locallity,
+    fullAddress,
+    landmark,
     city,
     state,
-    pincode,
-    country,
+    pinCode,
+    addressType,
+    isDefault,
   } = payload;
 
   if (isDefault) {
     await repo.updateOne(
       { user_id: userId, is_default: true },
       { $set: { is_default: false } },
-      { returnDocument: "after", select: "_id" },
     );
   }
 
@@ -87,26 +89,27 @@ exports.updateAddress = async ( payload) => {
     {
       $set: {
         ...(fullName && { full_name: fullName }),
-        ...(label && { label }),
-        ...(phone && { phone }),
-        ...(line1 && { line1 }),
-        ...(line2 && { line2 }),
+        ...(mobileNumber && { mobile_number: mobileNumber }),
+        ...(alternateContact && { alternate_contact: alternateContact }),
+        ...(locallity && { locallity }),
+        ...(fullAddress && { full_address: fullAddress }),
+        ...(landmark && { landmark }),
         ...(city && { city }),
         ...(state && { state }),
-        ...(pincode && { pincode }),
-        ...(country && { country }),
-        is_default: isDefault,
+        ...(pinCode && { pincode: pinCode }),
+        ...(addressType && { address_type: addressType }),
+        ...(typeof isDefault === "boolean" && { is_default: isDefault }),
       },
     },
     { returnDocument: "after", select: "-createdAt -updatedAt" },
   );
+
   if (!address) {
     throw new AppError(400, "Address not found");
   }
 
   return address;
 };
-
 exports.deleteAddress = async (payload) => {
   const { userId, addressId } = payload;
   const address = await repo.findOne(
