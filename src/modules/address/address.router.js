@@ -17,7 +17,11 @@ const {
 
 router.use(authenticate, authorize("USER"));
 router.get("/all", catchAsync("getAddresses api", getAddresses));
-router.post("/add", addAddressValidator, catchAsync("addAddress api", addAddress));
+router.post(
+  "/add",
+  addAddressValidator,
+  catchAsync("addAddress api", addAddress),
+);
 router.put(
   "/:id",
   updateAddressValidator,
