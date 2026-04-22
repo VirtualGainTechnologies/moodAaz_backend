@@ -9,8 +9,8 @@ const {
   getMediaValidator,
 } = require("./media.validator");
 
-// router.use(authenticate);
-// router.use(authorize("SUPER-ADMIN"));
+router.use(authenticate);
+router.use(authorize("SUPER-ADMIN"));
 
 router.post(
   "/",
