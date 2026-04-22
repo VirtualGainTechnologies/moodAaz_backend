@@ -84,7 +84,8 @@ exports.getUserProfile = async (req, res) => {
     throw new AppError(400, "Failed to get user profile");
   }
 
-  const isProfileIncomplete = !user?.first_name || !user?.last_name;
+  const isProfileIncomplete =
+    !user?.first_name || !user?.last_name || !user?.email || !user?.phone;
 
   res.status(200).json({
     message: isProfileIncomplete

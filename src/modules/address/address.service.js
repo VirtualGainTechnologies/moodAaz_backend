@@ -110,6 +110,7 @@ exports.updateAddress = async (payload) => {
 
   return address;
 };
+
 exports.deleteAddress = async (payload) => {
   const { userId, addressId } = payload;
   const address = await repo.findOne(

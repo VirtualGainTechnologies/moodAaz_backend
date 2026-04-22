@@ -31,6 +31,10 @@ exports.updateById = (id, payload, options = {}) => {
   return Product.findByIdAndUpdate(id, payload, options);
 };
 
+exports.bulkWrite = (operations = [], options = {}) => {
+  return Product.bulkWrite(operations, options);
+};
+
 // delete
 exports.deleteById = (id, options = {}) => {
   return Product.findByIdAndDelete(id, options);
