@@ -2,14 +2,15 @@ const router = require("express").Router();
 
 const { multer, authenticate, authorize } = require("../../middlewares");
 const { catchAsync } = require("../../utils/catch-async");
-const { createMedia, deleteMedia } = require("./media.controller");
+const { createMedia, deleteMedia, getMedia } = require("./media.controller");
 const {
   deleteMediaValidator,
   createMediaValidator,
+  getMediaValidator,
 } = require("./media.validator");
 
-router.use(authenticate);
-router.use(authorize("SUPER-ADMIN"));
+// router.use(authenticate);
+// router.use(authorize("SUPER-ADMIN"));
 
 router.post(
   "/",
@@ -23,5 +24,7 @@ router.delete(
   deleteMediaValidator,
   catchAsync("deleteMedia api", deleteMedia),
 );
+
+router.get("/", getMediaValidator, catchAsync("getMedia api", getMedia));
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const repo = require("./media.repository");
 const AppError = require("../../utils/app-error");
 const { deleteFile, uploadPublicFile } = require("../../services");
+const cache = require("./media.cache");
 
 exports.createMedia = async (payload, file) => {
   const { type, name } = payload;
@@ -17,12 +18,13 @@ exports.createMedia = async (payload, file) => {
   if (!media) {
     throw new AppError(400, "Failed to create media");
   }
+  await cache("LIST").invalidate(type);
 
   return media;
 };
 
 exports.deleteMedia = async (mediaId) => {
-  const media = await repo.findById(mediaId, "key", { lean: true });
+  const media = await repo.findById(mediaId, "key type", { lean: true });
   if (!media) {
     throw new AppError(404, "Media not found");
   }
@@ -33,5 +35,28 @@ exports.deleteMedia = async (mediaId) => {
   if (!deleted) {
     throw new AppError(400, "Failed to delete media record");
   }
+  await cache("LIST").invalidate(media.type);
   return true;
+};
+
+exports.getMedia = async (type) => {
+  const cached = await cache("LIST").get(type);
+  if (cached) return cached;
+
+  const media = await repo.findMany(
+    {
+      is_active: true,
+      ...(type && { type: type.toUpperCase() }),
+    },
+    "_id image type name key",
+    {
+      lean: true,
+      virtuals: true,
+    },
+  );
+  if (!media) {
+    throw new AppError(400, "Failed to fetch media");
+  }
+  await cache("LIST").set(type, media);
+  return media;
 };

@@ -5,6 +5,7 @@ const TTL = {
   REVIEW_RATINGS: 60 * 60, // 1 hr
   CART: 60 * 60 * 24, // 24 hrs
   WISHLIST: 60 * 60 * 24, // 24 hrs
+  MEDIA_LIST: 60 * 60 * 24, // 24 hrs
 };
 
 module.exports = { TTL };

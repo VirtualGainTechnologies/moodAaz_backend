@@ -26,3 +26,12 @@ exports.deleteMedia = async (req, res) => {
     data: null,
   });
 };
+
+exports.getMedia = async (req, res) => {
+  const result = await service.getMedia(req.query.type);
+  res.status(200).json({
+    message: "Media fetched successfully",
+    error: false,
+    data: result,
+  });
+};

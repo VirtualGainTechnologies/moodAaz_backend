@@ -1,4 +1,4 @@
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 
 exports.createMediaValidator = [
   body("type")
@@ -42,4 +42,11 @@ exports.deleteMediaValidator = [
     .withMessage("Media id is required")
     .isMongoId()
     .withMessage("Invalid media id"),
+];
+
+exports.getMediaValidator = [
+  query("type")
+    .optional()
+    .isIn(["SOCIAL_ICON", "LOGO", "BANNER", "IMAGE"])
+    .withMessage("Invalid media type"),
 ];
