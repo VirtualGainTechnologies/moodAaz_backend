@@ -11,8 +11,8 @@ const mediaCache = (type) => {
         get: (mediaType) => cache.get(key(mediaType)),
         set: (mediaType, data) => cache.set(key(mediaType), data, TTL),
         invalidate: (mediaType) => {
-          cache.delete(`media:list:${mediaType.toUpperCase()}`);
-          cache.delete(`media:list:all`);
+          cache.del(`media:list:${mediaType.toUpperCase()}`);
+          cache.del(`media:list:all`);
         },
       };
     }
