@@ -9,11 +9,10 @@ const {
   getMediaValidator,
 } = require("./media.validator");
 
-router.use(authenticate);
-router.use(authorize("SUPER-ADMIN"));
-
 router.post(
   "/",
+  authenticate,
+  authorize("SUPER-ADMIN"),
   multer.single("file"),
   createMediaValidator,
   catchAsync("createMedia api", createMedia),
@@ -21,6 +20,8 @@ router.post(
 
 router.delete(
   "/:id",
+  authenticate,
+  authorize("SUPER-ADMIN"),
   deleteMediaValidator,
   catchAsync("deleteMedia api", deleteMedia),
 );
