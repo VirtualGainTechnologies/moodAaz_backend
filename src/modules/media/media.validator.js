@@ -47,6 +47,6 @@ exports.deleteMediaValidator = [
 exports.getMediaValidator = [
   query("type")
     .optional()
-    .isIn(["SOCIAL_ICON", "LOGO", "BANNER", "IMAGE"])
+    .isIn(["SOCIAL_ICON", "LOGO", "BANNER"])
     .withMessage("Invalid media type"),
 ];
