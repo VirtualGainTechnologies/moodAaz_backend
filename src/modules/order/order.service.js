@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 
 const repo = require("./order.repository");
+const cache = require("./order.cache");
 const paymentService = require("../payment/payment.service");
 const addressRepo = require("../address/address.repository");
 const cartRepo = require("../cart/cart.repository");
@@ -197,11 +198,15 @@ exports.placeOrder = async (payload, session) => {
     },
   }));
   await productRepo.bulkWrite(bulkOps, { session });
+  await cache.invalidateOnOrderPlace(user_id);
   return order;
 };
 
 exports.getUserOrders = async (query) => {
   let { userId, status, page = 1, limit = 10 } = query;
+  const cached = await cache("USER_LIST").get(userId, query);
+  if (cached) return cached;
+
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
   const skip = (page - 1) * limit;
@@ -276,6 +281,8 @@ exports.getUserOrders = async (query) => {
     },
   ];
   const [result] = await repo.aggregate(pipeline);
+  await cache("USER_LIST").set(userId, query, result);
+
   return (
     result || {
       total: 0,
@@ -285,6 +292,9 @@ exports.getUserOrders = async (query) => {
 };
 
 exports.getOrderById = async (order_id, user_id) => {
+  const cached = await cache("DETAIL").get(order_id);
+  if (cached) return cached;
+
   const pipeline = [
     {
       $match: {
@@ -368,7 +378,7 @@ exports.getOrderById = async (order_id, user_id) => {
   if (!order) {
     throw new AppError(404, "Order not found");
   }
-
+  await cache("DETAIL").set(order_id, order);
   return order;
 };
 
@@ -426,11 +436,15 @@ exports.cancelOrder = async (payload, session) => {
     },
   }));
   await productRepo.bulkWrite(bulkOps, { session });
+  await cache.invalidateOnOrderUpdate(user_id, order_id);
   return true;
 };
 
 // admin
 exports.getAdminOrders = async (query) => {
+  const cached = await cache("ADMIN_LIST").get(query);
+  if (cached) return cached;
+
   let {
     status,
     from,
@@ -584,6 +598,7 @@ exports.getAdminOrders = async (query) => {
   if (!result) {
     throw new AppError(400, "Failed to fetch orders");
   }
+  await cache("ADMIN_LIST").set(query, result);
 
   return result || { total: 0, orders: [] };
 };
@@ -640,5 +655,6 @@ exports.updateOrderStatus = async (payload, session) => {
     throw new AppError(400, "Failed to update order status");
   }
 
+  await cache.invalidateOnOrderUpdate(order.user_id, order._id);
   return updatedOrder;
 };
