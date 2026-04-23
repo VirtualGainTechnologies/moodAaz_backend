@@ -28,18 +28,31 @@ const orderItems = new mongoose.Schema(
     image: {
       type: String,
     },
-    price: {
+    mrp_price: {
       type: Number,
-      required: [true, "Price is required"],
+      required: [true, "MRP price is required"],
+    },
+    sale_price: {
+      type: Number,
+      required: [true, "Sale price is required"],
     },
     quantity: {
       type: Number,
       required: [true, "Quantity is required"],
       min: 1,
     },
-    total: {
+    attributes: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: new Map(),
+    },
+    total_mrp: {
       type: Number,
-      required: [true, "Total is required"],
+      required: [true, "Total MRP is required"],
+    },
+    total_sale: {
+      type: Number,
+      required: [true, "Total sale price is required"],
     },
   },
   { _id: false },
@@ -102,7 +115,7 @@ const orderSchema = new mongoose.Schema(
     order_id: {
       type: String,
       unique: true,
-      default: getRandomOrderId(),
+      default: getRandomOrderId,
     },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -133,19 +146,23 @@ const orderSchema = new mongoose.Schema(
       ref: "payment",
       default: null,
     },
-    items_total: {
+    mrp_price: {
       type: Number,
-      required: true,
+      required: [true, "MRP price is required"],
     },
-    shipping_charge: {
+    sale_price: {
       type: Number,
-      default: 0,
+      required: [true, "Sale price is required"],
     },
     discount: {
       type: Number,
       default: 0,
     },
-    grand_total: {
+    shipping_charge: {
+      type: Number,
+      default: 0,
+    },
+    total: {
       type: Number,
       required: true,
     },
@@ -155,8 +172,6 @@ const orderSchema = new mongoose.Schema(
         values: [
           "PENDING",
           "CONFIRMED",
-          "PROCESSING",
-          "SHIPPED",
           "DELIVERED",
           "CANCELLED",
           "RETURN_REQUESTED",
@@ -172,8 +187,8 @@ const orderSchema = new mongoose.Schema(
           type: String,
         },
         changed_at: {
-          type: Date,
-          default: new Date().getTime(),
+          type: Number,
+          default: Date.now,
         },
         note: {
           type: String,
@@ -181,14 +196,24 @@ const orderSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    expected_delivery_date: {
+      type: Number,
+    },
     delivered_at: {
-      type: Date,
+      type: Number,
     },
     cancelled_at: {
-      type: Date,
+      type: Number,
+    },
+    returned_at: {
+      type: Number,
     },
     cancellation_reason: {
       type: String,
+    },
+    date: {
+      type: Number,
+      default: Date.now,
     },
   },
   { timestamps: true, versionKey: false },

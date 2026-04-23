@@ -27,7 +27,7 @@ const otpSchema = new mongoose.Schema(
     },
     date: {
       type: Number,
-      dafault: new Date().getTime(),
+      dafault: Date.now,
     },
   },
   { versionKey: false },

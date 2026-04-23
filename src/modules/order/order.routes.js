@@ -2,9 +2,10 @@ const router = require("express").Router();
 
 const {
   placeOrder,
-  getMyOrders,
+  getUserOrders,
   getOrderById,
   cancelOrder,
+  getAdminOrders,
   updateOrderStatus,
 } = require("./order.controller");
 const {
@@ -24,7 +25,7 @@ router.get(
   "/",
   authenticate,
   authorize("USER"),
-  catchAsync("getMyOrders api", getMyOrders),
+  catchAsync("getUserOrders api", getUserOrders),
 );
 router.get(
   "/:id",
@@ -40,8 +41,15 @@ router.patch(
 );
 
 // admin routes
+router.get(
+  "/admin/all",
+  // authenticate,
+  // authorize("SUPER-ADMIN"),
+  catchAsync("getAdminOrders api", getAdminOrders),
+);
+
 router.patch(
-  "/:id/status",
+  "/admin/:id/status",
   authenticate,
   authorize("SUPER-ADMIN"),
   catchAsyncWithSession("updateOrderStatus api", updateOrderStatus),

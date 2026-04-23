@@ -63,7 +63,7 @@ exports.refundPayment = async (payment_id) => {
     {
       status: "REFUNDED",
       refund_amount: payment.amount,
-      refunded_at: new Date().getTime(),
+      refunded_at: Date.now,
     },
     { returnDocument: "after" },
   );

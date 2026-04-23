@@ -75,7 +75,7 @@ const adminSchema = new mongoose.Schema(
     },
     last_login_date: {
       type: Number,
-      default: new Date().getTime(),
+      default: Date.now,
     },
     status: {
       type: String,

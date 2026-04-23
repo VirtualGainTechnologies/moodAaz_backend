@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const moment = require("moment-timezone");
 
 const repo = require("./order.repository");
 const paymentService = require("../payment/payment.service");
@@ -12,8 +13,15 @@ const {
   NODE_ENV,
 } = require("../../config/env");
 
+const IST = "Asia/Kolkata";
 const S3_BASE_URL =
   NODE_ENV === "production" ? S3_PROD_PUBLIC_BASE_URL : S3_TEST_PUBLIC_BASE_URL;
+
+const getExpectedDeliveryDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7); // flat 7 days for all orders
+  return date.getTime();
+};
 
 exports.placeOrder = async (payload, session) => {
   const { user_id, address_id, payment_method = "COD" } = payload;
@@ -69,24 +77,31 @@ exports.placeOrder = async (payload, session) => {
     );
     const thumbnail = variantImage?.thumbnail || null;
 
-    const effectivePrice = variant.sale_price || variant.price;
     return {
       product_id: product._id,
       variant_id: variant._id,
       sku: variant.sku,
       name: product.name,
       image: thumbnail,
-      price: effectivePrice,
+      mrp_price: variant.price,
+      sale_price: variant.sale_price,
       quantity: item.quantity,
-      total: effectivePrice * item.quantity,
+      attributes: variant.attributes,
+      total_mrp: variant.price * item.quantity,
+      total_sale: variant.sale_price * item.quantity,
     };
   });
 
   // 4. calculate totals
-  const items_total = orderItems.reduce((sum, i) => sum + i.total, 0);
+  let mrp_price = 0,
+    sale_price = 0;
+  orderItems.forEach((item) => {
+    mrp_price += item.total_mrp;
+    sale_price += item.total_sale;
+  });
   const shipping_charge = 0;
-  const discount = 0;
-  const grand_total = items_total + shipping_charge - discount;
+  const discount = mrp_price - sale_price;
+  const total = sale_price + shipping_charge;
 
   // 5. snapshot shipping address
   const shipping_address = {
@@ -110,17 +125,19 @@ exports.placeOrder = async (payload, session) => {
       items: orderItems,
       shipping_address,
       payment_method,
-      items_total,
+      mrp_price,
+      sale_price,
       shipping_charge,
       discount,
-      grand_total,
+      total,
       status: "PENDING",
       status_history: [
         {
           status: "PENDING",
-          note: "Order placed",
+          note: "Order placed successfully",
         },
       ],
+      expected_delivery_date: getExpectedDeliveryDate(),
     },
     session,
   );
@@ -131,17 +148,16 @@ exports.placeOrder = async (payload, session) => {
       order_id: order._id,
       user_id,
       method: payment_method,
-      amount: grand_total,
+      amount: total,
     },
     session,
   );
 
-  // 8. link payment → order, confirm
+  // 8. link payment to order
   const updatedOrder = await repo.updateById(
     order._id,
     {
       payment_id: payment._id,
-      status: "CONFIRMED",
       $push: {
         status_history: {
           status: "CONFIRMED",
@@ -181,11 +197,7 @@ exports.placeOrder = async (payload, session) => {
     },
   }));
   await productRepo.bulkWrite(bulkOps, { session });
-
-  return {
-    order: updatedOrder,
-    payment,
-  };
+  return order;
 };
 
 exports.getUserOrders = async (query) => {
@@ -198,11 +210,13 @@ exports.getUserOrders = async (query) => {
     {
       $match: {
         user_id: new mongoose.Types.ObjectId(userId),
-        ...(status ? { status } : {}),
+        ...(status
+          ? { status: { $in: status.split(",").map((s) => s.toUpperCase()) } }
+          : {}),
       },
     },
     {
-      $sort: { createdAt: -1 },
+      $sort: { date: -1 },
     },
     {
       $facet: {
@@ -212,6 +226,7 @@ exports.getUserOrders = async (query) => {
           { $limit: limit },
           {
             $project: {
+              order_id: 1,
               items: {
                 $map: {
                   input: "$items",
@@ -222,22 +237,32 @@ exports.getUserOrders = async (query) => {
                     sku: "$$item.sku",
                     name: "$$item.name",
                     image: {
-                      $concat: [S3_BASE_URL, "/", "$$item.image"],
+                      $cond: {
+                        if: { $ifNull: ["$$item.image", false] },
+                        then: {
+                          $concat: [S3_BASE_URL, "/", "$$item.image"],
+                        },
+                        else: null,
+                      },
                     },
-                    price: "$$item.price",
+                    mrp_price: "$$item.mrp_price",
+                    sale_price: "$$item.sale_price",
                     quantity: "$$item.quantity",
-                    total: "$$item.total",
+                    attributes: "$$item.attributes",
+                    total_mrp: "$$item.total_mrp",
+                    total_sale: "$$item.total_sale",
                   },
                 },
               },
-              shipping_address: 1,
               payment_method: 1,
-              items_total: 1,
+              sale_price: 1,
+              mrp_price: 1,
               shipping_charge: 1,
               discount: 1,
-              grand_total: 1,
+              total: 1,
               status: 1,
-              createdAt: 1,
+              expected_delivery_date: 1,
+              date: 1,
             },
           },
         ],
@@ -246,7 +271,7 @@ exports.getUserOrders = async (query) => {
     {
       $project: {
         total: { $ifNull: [{ $arrayElemAt: ["$meta.total", 0] }, 0] },
-        data: 1,
+        orders: "$data",
       },
     },
   ];
@@ -254,7 +279,7 @@ exports.getUserOrders = async (query) => {
   return (
     result || {
       total: 0,
-      data: [],
+      orders: [],
     }
   );
 };
@@ -292,6 +317,7 @@ exports.getOrderById = async (order_id, user_id) => {
     },
     {
       $project: {
+        order_id: 1,
         items: {
           $map: {
             input: "$items",
@@ -310,24 +336,30 @@ exports.getOrderById = async (order_id, user_id) => {
                   else: null,
                 },
               },
-              price: "$$item.price",
+              mrp_price: "$$item.mrp_price",
+              sale_price: "$$item.sale_price",
               quantity: "$$item.quantity",
-              total: "$$item.total",
+              attributes: "$$item.attributes",
+              total_mrp: "$$item.total_mrp",
+              total_sale: "$$item.total_sale",
             },
           },
         },
         shipping_address: 1,
         payment_method: 1,
         payment: 1,
-        items_total: 1,
+        sale_price: 1,
+        mrp_price: 1,
         shipping_charge: 1,
         discount: 1,
-        grand_total: 1,
+        total: 1,
         status: 1,
         status_history: 1,
+        expected_delivery_date: 1,
         delivered_at: 1,
         cancelled_at: 1,
         cancellation_reason: 1,
+        date: 1,
       },
     },
   ];
@@ -363,7 +395,7 @@ exports.cancelOrder = async (payload, session) => {
     order_id,
     {
       status: "CANCELLED",
-      cancelled_at: new Date().getTime(),
+      cancelled_at: Date.now,
       cancellation_reason: reason,
       $push: {
         status_history: {
@@ -394,7 +426,166 @@ exports.cancelOrder = async (payload, session) => {
     },
   }));
   await productRepo.bulkWrite(bulkOps, { session });
-  return updatedOrder;
+  return true;
+};
+
+// admin
+exports.getAdminOrders = async (query) => {
+  let {
+    status,
+    from,
+    to,
+    payment_method,
+    search,
+    page = 1,
+    limit = 10,
+  } = query;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const match = {
+    ...(status ? { status: status.toUpperCase() } : {}),
+    ...(payment_method ? { payment_method: payment_method.toUpperCase() } : {}),
+    ...(from &&
+      to && {
+        date: {
+          $gte: moment.tz(from, "YYYY-MM-DD", IST).startOf("day").valueOf(),
+          $lte: moment.tz(to, "YYYY-MM-DD", IST).endOf("day").valueOf(),
+        },
+      }),
+  };
+
+  const pipeline = [
+    { $match: match },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user_id",
+        foreignField: "_id",
+        as: "user",
+        pipeline: [
+          {
+            $project: {
+              email: 1,
+              phone: 1,
+              full_name: {
+                $trim: {
+                  input: {
+                    $concat: [
+                      { $ifNull: ["$first_name", ""] },
+                      {
+                        $cond: {
+                          if: {
+                            $and: [
+                              { $ifNull: ["$first_name", false] },
+                              { $ifNull: ["$last_name", false] },
+                            ],
+                          },
+                          then: " ",
+                          else: "",
+                        },
+                      },
+                      { $ifNull: ["$last_name", ""] },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    ...(search
+      ? [
+          {
+            $match: {
+              $or: [
+                { order_id: { $regex: search, $options: "i" } },
+                { "user.email": { $regex: search, $options: "i" } },
+              ],
+            },
+          },
+        ]
+      : []),
+    { $sort: { date: -1 } },
+    {
+      $facet: {
+        meta: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              order_id: 1,
+              status: 1,
+              payment_method: 1,
+              items_total: 1,
+              total_discount: 1,
+              grand_total: 1,
+              expected_delivery_date: 1,
+              delivered_at: 1,
+              cancelled_at: 1,
+              returned_at: 1,
+              cancellation_reason: 1,
+              date: 1,
+              user: 1,
+              items: {
+                $map: {
+                  input: "$items",
+                  as: "item",
+                  in: {
+                    product_id: "$$item.product_id",
+                    variant_id: "$$item.variant_id",
+                    sku: "$$item.sku",
+                    name: "$$item.name",
+                    image: {
+                      $cond: {
+                        if: { $ifNull: ["$$item.image", false] },
+                        then: {
+                          $concat: [
+                            process.env.S3_BASE_URL,
+                            "/",
+                            "$$item.image",
+                          ],
+                        },
+                        else: null,
+                      },
+                    },
+                    mrp: "$$item.mrp",
+                    sale_price: "$$item.sale_price",
+                    discount: "$$item.discount",
+                    quantity: "$$item.quantity",
+                    total: "$$item.total",
+                  },
+                },
+              },
+              shipping_address: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        total: { $ifNull: [{ $arrayElemAt: ["$meta.total", 0] }, 0] },
+        orders: "$data",
+      },
+    },
+  ];
+  const [result] = await repo.aggregate(pipeline);
+  if (!result) {
+    throw new AppError(400, "Failed to fetch orders");
+  }
+
+  return result || { total: 0, orders: [] };
 };
 
 exports.updateOrderStatus = async (payload, session) => {
@@ -407,13 +598,35 @@ exports.updateOrderStatus = async (payload, session) => {
     throw new AppError(404, "Order not found");
   }
 
+  const statusNote = (status) => {
+    switch (status) {
+      case "DELIVERED":
+        return "Order delivered by delivery partner";
+      case "CANCELLED":
+        return "Order cancelled by admin";
+      default:
+        return "";
+    }
+  };
+
   const update = {
     status,
-    $push: { status_history: { status, note } },
+    $push: {
+      status_history: {
+        status,
+        note: note || statusNote(status),
+      },
+    },
+    ...(status === "CANCELLED" && {
+      cancelled_at: Date.now(),
+      cancellation_reason: note || "Cancelled by admin",
+    }),
+    ...(status === "DELIVERED" && {
+      delivered_at: Date.now(),
+    }),
   };
 
   if (status === "DELIVERED") {
-    update.delivered_at = new Date().getTime();
     if (order.payment_method === "COD" && order.payment_id) {
       await paymentService.markCODPaid(order.payment_id, session);
     }
@@ -426,5 +639,6 @@ exports.updateOrderStatus = async (payload, session) => {
   if (!updatedOrder) {
     throw new AppError(400, "Failed to update order status");
   }
+
   return updatedOrder;
 };

@@ -16,7 +16,7 @@ exports.placeOrder = async (req, session) => {
   };
 };
 
-exports.getMyOrders = async (req, res) => {
+exports.getUserOrders = async (req, res) => {
   const orders = await service.getUserOrders({
     userId: req.user._id,
     status: req.query.status,
@@ -40,7 +40,7 @@ exports.getOrderById = async (req, res) => {
 };
 
 exports.cancelOrder = async (req, session) => {
-  const order = await service.cancelOrder(
+  await service.cancelOrder(
     {
       order_id: req.params.id,
       user_id: req.user._id,
@@ -51,8 +51,18 @@ exports.cancelOrder = async (req, session) => {
   return {
     message: "Order cancelled successfully",
     error: false,
-    data: order,
+    data: null,
   };
+};
+
+exports.getAdminOrders = async (req, res) => {
+  const result = await service.getAdminOrders(req.query);
+
+  res.status(200).json({
+    message: "Orders fetched successfully",
+    error: false,
+    data: result,
+  });
 };
 
 exports.updateOrderStatus = async (req, session) => {
