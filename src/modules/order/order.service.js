@@ -159,6 +159,7 @@ exports.placeOrder = async (payload, session) => {
     order._id,
     {
       payment_id: payment._id,
+      status: "CONFIRMED",
       $push: {
         status_history: {
           status: "CONFIRMED",
