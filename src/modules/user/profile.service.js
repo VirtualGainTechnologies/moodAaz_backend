@@ -48,7 +48,7 @@ exports.sendContactUpdateOtp = async (payload) => {
     if (existing) {
       new AppError(409, "Email already in use");
     }
-    const result = await sendEmailOtp(value, "emailUpdate");
+    const result = await sendEmailOtp(value, "EMAIL_UPDATE");
     if (!result) {
       throw new AppError(400, "Failed to send email OTP");
     }

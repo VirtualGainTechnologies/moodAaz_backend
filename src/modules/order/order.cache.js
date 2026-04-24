@@ -65,7 +65,6 @@ orderCache.invalidateOnOrderUpdate = (user_id, order_id) => {
   orderCache("USER_LIST").invalidate(user_id);
   orderCache("DETAIL").invalidate(order_id);
   orderCache("ADMIN_LIST").invalidate();
-  orderCache("ADMIN_DETAIL").invalidate(order_id);
 };
 
 orderCache.invalidateAll = () => cache.delByPattern(`orders:*`);

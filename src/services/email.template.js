@@ -40,9 +40,21 @@ const emailUpdateOtpTemplate = ({ otp }) => ({
   `,
 });
 
+const cancelOrderOtpTemplate = ({ otp, orderId }) => ({
+  subject: `${APP_NAME} Order Cancellation OTP`,
+  body: `
+    <h2>${APP_NAME} Order Cancellation Request</h2>
+    <p>We received a request to cancel your order <b>#${orderId}</b>.</p>
+    <p>Your OTP is <b>${otp}</b></p>
+    <p>This OTP is valid for 5 minutes.</p>
+    <p>If you did not request this cancellation, please ignore this email.</p>
+  `,
+});
+
 exports.emailOtpTemplates = {
-  login: loginOtpTemplate,
-  register: registerOtpTemplate,
-  forgotPassword: forgotPasswordOtpTemplate,
-  emailUpdate: emailUpdateOtpTemplate,
+  LOGIN: loginOtpTemplate,
+  REGISTER: registerOtpTemplate,
+  FORGOT_PASSWORD: forgotPasswordOtpTemplate,
+  EMAIL_UPDATE: emailUpdateOtpTemplate,
+  CANCEL_ORDER: cancelOrderOtpTemplate,
 };

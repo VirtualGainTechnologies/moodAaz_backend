@@ -7,12 +7,18 @@ const paymentService = require("../payment/payment.service");
 const addressRepo = require("../address/address.repository");
 const cartRepo = require("../cart/cart.repository");
 const productRepo = require("../product/product.repository");
+const userRepo = require("../user/user.repository");
 const AppError = require("../../utils/app-error");
 const {
   S3_TEST_PUBLIC_BASE_URL,
   S3_PROD_PUBLIC_BASE_URL,
   NODE_ENV,
 } = require("../../config/env");
+const {
+  sendEmailOtp,
+  sendMobileOtp,
+  verifyOtp,
+} = require("../otp/otp.service");
 
 const IST = "Asia/Kolkata";
 const S3_BASE_URL =
@@ -383,8 +389,51 @@ exports.getOrderById = async (order_id, user_id) => {
   return order;
 };
 
-exports.cancelOrder = async (payload, session) => {
-  const { order_id, user_id, reason = "" } = payload;
+exports.sendCancelOrderOtp = async (payload) => {
+  const { order_id, user_id, reason = "Cancelled by user" } = payload;
+  const user = await userRepo.findById(
+    user_id,
+    "email email_verified phone_verified phone_code phone",
+    { lean: true },
+  );
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  const order = await repo.findOne({ _id: order_id, user_id }, "status", {
+    lean: true,
+  });
+  if (!order) {
+    throw new AppError(404, "Order not found");
+  }
+  if (!["PENDING", "CONFIRMED"].includes(order.status)) {
+    throw new AppError(
+      400,
+      `Order cannot be cancelled in '${order.status}' status`,
+    );
+  }
+
+  if (user.phone_verified) {
+    const result = await sendMobileOtp(user.phone_code, user.phone);
+    return { otpId: result.otpId, reason };
+  } else if (user.email_verified) {
+    const result = await sendEmailOtp(user.email, "CANCEL_ORDER");
+    return { otpId: result.otpId, reason };
+  } else {
+    throw new AppError(
+      400,
+      "Verify your email or phone number to receive OTP.",
+    );
+  }
+};
+
+exports.verifyCancelOrderOtp = async (payload, session) => {
+  const { order_id, user_id, otpId, otp, reason = "" } = payload;
+  const verified = await verifyOtp(otpId, otp);
+  if (!verified) {
+    throw new AppError(400, "Failed to verify otp");
+  }
+
   const order = await repo.findOne(
     { _id: order_id, user_id },
     "-status_history",
@@ -394,7 +443,7 @@ exports.cancelOrder = async (payload, session) => {
     throw new AppError(404, "Order not found");
   }
 
-  if (!["PENDING", "CONFIRMED", "PROCESSING"].includes(order.status)) {
+  if (!["PENDING", "CONFIRMED"].includes(order.status)) {
     throw new AppError(
       400,
       `Order cannot be cancelled in '${order.status}' status`,
@@ -406,7 +455,7 @@ exports.cancelOrder = async (payload, session) => {
     order_id,
     {
       status: "CANCELLED",
-      cancelled_at: Date.now,
+      cancelled_at: Date.now(),
       cancellation_reason: reason,
       $push: {
         status_history: {

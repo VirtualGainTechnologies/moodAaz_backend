@@ -4,8 +4,8 @@ exports.placeOrder = async (req, session) => {
   const result = await service.placeOrder(
     {
       user_id: req.user._id,
-      address_id: req.body.address_id,
-      payment_method: req.body.payment_method,
+      address_id: req.body.addressId,
+      payment_method: req.body.paymentMethod,
     },
     session,
   );
@@ -39,12 +39,28 @@ exports.getOrderById = async (req, res) => {
   });
 };
 
-exports.cancelOrder = async (req, session) => {
-  await service.cancelOrder(
+exports.sendCancelOrderOtp = async (req, res) => {
+  const result = await service.sendCancelOrderOtp({
+    order_id: req.params?.id,
+    user_id: req.user?._id,
+    reason: req.body?.reason,
+  });
+
+  res.status(200).json({
+    message: "OTP sent successfully",
+    error: false,
+    data: result,
+  });
+};
+
+exports.verifyCancelOrderOtp = async (req, session) => {
+  await service.verifyCancelOrderOtp(
     {
-      order_id: req.params.id,
-      user_id: req.user._id,
-      reason: req.body.reason,
+      order_id: req.params?.id,
+      user_id: req.user?._id,
+      otpId: req.body?.otpId,
+      otp: req.body?.otp,
+      reason: req.body?.reason,
     },
     session,
   );

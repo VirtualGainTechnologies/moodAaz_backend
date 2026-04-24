@@ -35,7 +35,7 @@ exports.initiateAuthentication = async (payload) => {
 
   let result;
   if (type == "EMAIL") {
-    result = await sendEmailOtp(value, authType.toLowerCase());
+    result = await sendEmailOtp(value, authType);
   } else {
     const { countryCode, input } = parsePhone(identifier, country);
     result = await sendMobileOtp(countryCode, input);

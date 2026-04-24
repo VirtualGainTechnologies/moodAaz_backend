@@ -22,7 +22,7 @@ exports.sendForgotPasswordOtp = async (payload) => {
 
   const otpResult =
     mode == "EMAIL"
-      ? await sendEmailOtp(email, "forgotPassword")
+      ? await sendEmailOtp(email, "FORGOT_PASSWORD")
       : await sendMobileOtp(phoneCode, phone);
   if (!otpResult) {
     throw new AppError(400, "Failed to send otp");
