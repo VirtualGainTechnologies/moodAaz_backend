@@ -115,7 +115,7 @@ exports.getAdminOrdersValidator = [
     .optional()
     .matches(/^\d{4}-\d{2}-\d{2}$/)
     .withMessage("to must be in YYYY-MM-DD format"),
-  query("payment_method")
+  query("paymentMethod")
     .optional()
     .isIn(PAYMENT_METHODS)
     .withMessage("Invalid payment method"),

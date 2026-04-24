@@ -495,15 +495,7 @@ exports.getAdminOrders = async (query) => {
   const cached = await cache("ADMIN_LIST").get(query);
   if (cached) return cached;
 
-  let {
-    status,
-    from,
-    to,
-    payment_method,
-    search,
-    page = 1,
-    limit = 10,
-  } = query;
+  let { status, from, to, paymentMethod, search, page = 1, limit = 10 } = query;
 
   page = parseInt(page) || 1;
   limit = parseInt(limit) || 10;
@@ -511,7 +503,7 @@ exports.getAdminOrders = async (query) => {
 
   const match = {
     ...(status ? { status: status.toUpperCase() } : {}),
-    ...(payment_method ? { payment_method: payment_method.toUpperCase() } : {}),
+    ...(paymentMethod ? { payment_method: paymentMethod.toUpperCase() } : {}),
     ...(from &&
       to && {
         date: {
