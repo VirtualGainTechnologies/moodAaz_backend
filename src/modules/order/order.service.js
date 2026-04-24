@@ -274,6 +274,8 @@ exports.getUserOrders = async (query) => {
               total: 1,
               status: 1,
               expected_delivery_date: 1,
+              cancelled_at: 1,
+              cancellation_reason: 1,
               date: 1,
             },
           },
